@@ -37,3 +37,6 @@ logs/*.log
 *.pid
 local_settings.py
 .DS_Store
+
+# Cache
+.cache/
