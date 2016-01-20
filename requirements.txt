@@ -1,0 +1,12 @@
+Django
+djangorestframework
+dj-database-url
+psycopg2
+raven
+gunicorn
+django-filter
+dj-static
+celery
+django-celery
+redis
+pytz
