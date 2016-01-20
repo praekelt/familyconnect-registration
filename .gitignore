@@ -5,44 +5,6 @@ __pycache__/
 # C extensions
 *.so
 
-# Packages
-*.egg
-*.egg-info
-dist
-eggs
-parts
-bin
-var
-sdist
-develop-eggs
-.installed.cfg
-lib
-lib64
-
-# Installer logs
-pip-log.txt
-
-# Unit test / coverage reports
-.coverage
-.tox
-nosetests.xml
-
-# Translations
-*.mo
-
-# Mr Developer
-.mr.developer.cfg
-.project
-.pydevproject
-/ve/
-logs/*.log
-*.pid
-local_settings.py
-.DS_Store
-
-# Cache
-.cache/
-
 # Distribution / packaging
 .Python
 env/
@@ -57,9 +19,10 @@ lib64/
 parts/
 sdist/
 var/
+bin/
 *.egg-info/
-.installed.cfg
 *.egg
+.installed.cfg
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -93,3 +56,13 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# Mr Developer
+.mr.developer.cfg
+.project
+.pydevproject
+/ve/
+logs/*.log
+*.pid
+local_settings.py
+.DS_Store
