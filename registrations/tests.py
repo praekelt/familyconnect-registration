@@ -2,11 +2,13 @@ import json
 
 from django.contrib.auth.models import User
 from django.test import TestCase
+from django.db.models.signals import post_save
 from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
 
-from .models import Source, Registration
+from .models import Source, Registration, registration_post_save
+# from .tasks import validate_registration
 
 
 class APITestCase(TestCase):
@@ -18,6 +20,23 @@ class APITestCase(TestCase):
 
 
 class AuthenticatedAPITestCase(APITestCase):
+
+    def _replace_post_save_hooks(self):
+        has_listeners = lambda: post_save.has_listeners(Registration)
+        assert has_listeners(), (
+            "Registration model has no post_save listeners. Make sure"
+            " helpers cleaned up properly in earlier tests.")
+        post_save.disconnect(registration_post_save, sender=Registration)
+        assert not has_listeners(), (
+            "Registration model still has post_save listeners. Make sure"
+            " helpers cleaned up properly in earlier tests.")
+
+    def _restore_post_save_hooks(self):
+        has_listeners = lambda: post_save.has_listeners(Registration)
+        assert not has_listeners(), (
+            "Registration model still has post_save listeners. Make sure"
+            " helpers removed them properly in earlier tests.")
+        post_save.connect(registration_post_save, sender=Registration)
 
     def make_source_adminuser(self):
         data = {
@@ -61,6 +80,7 @@ class AuthenticatedAPITestCase(APITestCase):
 
     def setUp(self):
         super(AuthenticatedAPITestCase, self).setUp()
+        self._replace_post_save_hooks()
 
         # Normal User setup
         self.normalusername = 'testnormaluser'
@@ -85,6 +105,9 @@ class AuthenticatedAPITestCase(APITestCase):
         self.admintoken = admintoken.key
         self.adminclient.credentials(
             HTTP_AUTHORIZATION='Token ' + self.admintoken)
+
+    def tearDown(self):
+        self._restore_post_save_hooks()
 
 
 class TestLogin(AuthenticatedAPITestCase):
