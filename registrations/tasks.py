@@ -1,23 +1,39 @@
 from celery.task import Task
 from celery.utils.log import get_task_logger
 
+from .models import Registration
+
 
 logger = get_task_logger(__name__)
 
 
-class The_Incr(Task):
-
+class ValidateRegistration(Task):
+    """ Task to validate a registration model entry's registration
+    data.
     """
-    Task to incr something
-    """
-    name = "familyconnect_registration.registrations.tasks.the_incr"
+    name = "familyconnect_registration.registrations.tasks.\
+    validate_registration"
 
-    def run(self, anum, **kwargs):
+    def validate_prebirth(registration_data):
+        """ Validates that all the required info is provided for a
+        prebirth registration.
         """
-        Returns an incr'd number
+        required_fields = ["last_period_date"]
+
+    def run(self, registration_id, **kwargs):
+        """ Sets the registration's validated field to True if
+        validation is successful.
         """
         l = self.get_logger(**kwargs)
-        l.info("Incrementing <%s>" % (anum,))
-        return int(anum)+1
+        l.info("Looking up the registration")
+        registration = Registration.objects.get(id=registration_id)
+        print(registration.validated)
 
-the_incr = The_Incr()
+        l.info("Setting the validated field to true")
+        registration.validated = True
+        registration.save()
+        print(registration.validated)
+
+        return "work in progress"
+
+validate_registration = ValidateRegistration()

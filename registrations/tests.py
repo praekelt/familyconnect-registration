@@ -8,7 +8,7 @@ from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
 
 from .models import Source, Registration, registration_post_save
-# from .tasks import validate_registration
+from .tasks import validate_registration
 
 
 class APITestCase(TestCase):
@@ -320,3 +320,15 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
         self.assertEqual(d.stage, 'pre_birth')
         self.assertEqual(d.validated, False)  # Should ignore True post_data
         self.assertEqual(d.data, {"test_key1": "test_value1"})
+
+
+class TestRegistrationValidation(AuthenticatedAPITestCase):
+
+    def test_validate_registration(self):
+        # Setup
+        registration = self.make_registration_adminuser()
+        # Execute
+        validate_registration.apply_async(
+            kwargs={"registration_id": registration.id})
+        # Check
+        self.assertEqual(1, 2)
