@@ -43,6 +43,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # 3rd party
+    'djcelery',
     'raven.contrib.django.raven_compat',
     'rest_framework',
     'rest_framework.authtoken',
@@ -146,6 +147,8 @@ CELERY_ALWAYS_EAGER = False
 CELERY_IMPORTS = (
     'registrations.tasks',
 )
+
+CELERY_CREATE_MISSING_QUEUES = True
 
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
