@@ -8,8 +8,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.9/ref/settings/
 """
 
-import os
+from kombu import Exchange, Queue
 
+import os
+import djcelery
 import dj_database_url
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -131,8 +133,6 @@ CELERYBEAT_SCHEDULER = 'djcelery.schedulers.DatabaseScheduler'
 
 BROKER_URL = os.environ.get('RABBITMQ_URL', 'redis://localhost:6379/0')
 
-from kombu import Exchange, Queue
-
 CELERY_DEFAULT_QUEUE = 'familyconnect_registration'
 CELERY_QUEUES = (
     Queue('familyconnect_registration',
@@ -151,5 +151,4 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_ACCEPT_CONTENT = ['json']
 
-import djcelery
 djcelery.setup_loader()
