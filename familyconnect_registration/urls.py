@@ -3,7 +3,7 @@ from django.conf.urls import patterns, include, url
 from django.contrib import admin
 
 admin.site.site_header = os.environ.get('REGISTRATIONS_TITLE',
-                                        'familyconnect_registration Admin')
+                                        'FamilyConnect Registration Admin')
 
 
 urlpatterns = patterns(
