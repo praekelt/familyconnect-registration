@@ -72,41 +72,33 @@ class AuthenticatedAPITestCase(APITestCase):
         data = {
             "name": "test_source_adminuser",
             "authority": "hw_full",
+            "user": User.objects.get(username='testadminuser')
         }
-        user = User.objects.get(username='testadminuser')
-        data["user"] = user
-        source = Source.objects.create(**data)
-        return source
+        return Source.objects.create(**data)
 
     def make_source_normaluser(self):
         data = {
             "name": "test_source_normaluser",
             "authority": "hw_full",
+            "user": User.objects.get(username='testnormaluser')
         }
-        user = User.objects.get(username='testnormaluser')
-        data["user"] = user
-        source = Source.objects.create(**data)
-        return source
+        return Source.objects.create(**data)
 
     def make_registration_adminuser(self):
-        source = self.make_source_adminuser()
         data = {
-            "stage": "pre_birth",
+            "stage": "prebirth",
             "data": {"test_adminuser_reg_key": "test_adminuser_reg_value"},
-            "source": source
+            "source": self.make_source_adminuser()
         }
-        registration = Registration.objects.create(**data)
-        return registration
+        return Registration.objects.create(**data)
 
     def make_registration_normaluser(self):
-        source = self.make_source_normaluser()
         data = {
-            "stage": "post_birth",
+            "stage": "postbirth",
             "data": {"test_normaluser_reg_key": "test_normaluser_reg_value"},
-            "source": source
+            "source": self.make_source_normaluser()
         }
-        registration = Registration.objects.create(**data)
-        return registration
+        return Registration.objects.create(**data)
 
     def setUp(self):
         super(AuthenticatedAPITestCase, self).setUp()
@@ -220,6 +212,8 @@ class TestSourceAPI(AuthenticatedAPITestCase):
                                         content_type='application/json')
         # Check
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["authority"], "hw_full")
+        self.assertEqual(response.data["name"], "test_source_adminuser")
 
     def test_get_source_normaluser(self):
         # Setup
@@ -294,7 +288,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
         # Setup
         self.make_source_adminuser()
         post_data = {
-            "stage": "pre_birth",
+            "stage": "prebirth",
             "data": {"test_key1": "test_value1"}
         }
         # Execute
@@ -306,7 +300,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
 
         d = Registration.objects.last()
         self.assertEqual(d.source.name, 'test_source_adminuser')
-        self.assertEqual(d.stage, 'pre_birth')
+        self.assertEqual(d.stage, 'prebirth')
         self.assertEqual(d.validated, False)
         self.assertEqual(d.data, {"test_key1": "test_value1"})
 
@@ -314,7 +308,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
         # Setup
         self.make_source_normaluser()
         post_data = {
-            "stage": "post_birth",
+            "stage": "postbirth",
             "data": {"test_key1": "test_value1"}
         }
         # Execute
@@ -326,7 +320,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
 
         d = Registration.objects.last()
         self.assertEqual(d.source.name, 'test_source_normaluser')
-        self.assertEqual(d.stage, 'post_birth')
+        self.assertEqual(d.stage, 'postbirth')
         self.assertEqual(d.validated, False)
         self.assertEqual(d.data, {"test_key1": "test_value1"})
 
@@ -334,7 +328,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
         # Setup
         self.make_source_adminuser()
         post_data = {
-            "stage": "pre_birth",
+            "stage": "prebirth",
             "data": {"test_key1": "test_value1"},
             "validated": True
         }
@@ -347,7 +341,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
 
         d = Registration.objects.last()
         self.assertEqual(d.source.name, 'test_source_adminuser')
-        self.assertEqual(d.stage, 'pre_birth')
+        self.assertEqual(d.stage, 'prebirth')
         self.assertEqual(d.validated, False)  # Should ignore True post_data
         self.assertEqual(d.data, {"test_key1": "test_value1"})
 
