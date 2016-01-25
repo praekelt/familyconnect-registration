@@ -159,6 +159,8 @@ class TestSourceAPI(AuthenticatedAPITestCase):
                                         content_type='application/json')
         # Check
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["authority"], "hw_full")
+        self.assertEqual(response.data["name"], "test_source_adminuser")
 
     def test_get_source_normaluser(self):
         # Setup
