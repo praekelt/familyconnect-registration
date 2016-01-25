@@ -42,7 +42,7 @@ class AuthenticatedAPITestCase(APITestCase):
     def make_registration_adminuser(self):
         source = self.make_source_adminuser()
         data = {
-            "stage": "pre_birth",
+            "stage": "prebirth",
             "data": {"test_adminuser_reg_key": "test_adminuser_reg_value"},
             "source": source
         }
@@ -52,7 +52,7 @@ class AuthenticatedAPITestCase(APITestCase):
     def make_registration_normaluser(self):
         source = self.make_source_normaluser()
         data = {
-            "stage": "post_birth",
+            "stage": "postbirth",
             "data": {"test_normaluser_reg_key": "test_normaluser_reg_value"},
             "source": source
         }
@@ -241,7 +241,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
         # Setup
         self.make_source_adminuser()
         post_data = {
-            "stage": "pre_birth",
+            "stage": "prebirth",
             "data": {"test_key1": "test_value1"}
         }
         # Execute
@@ -253,7 +253,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
 
         d = Registration.objects.last()
         self.assertEqual(d.source.name, 'test_source_adminuser')
-        self.assertEqual(d.stage, 'pre_birth')
+        self.assertEqual(d.stage, 'prebirth')
         self.assertEqual(d.validated, False)
         self.assertEqual(d.data, {"test_key1": "test_value1"})
 
@@ -261,7 +261,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
         # Setup
         self.make_source_normaluser()
         post_data = {
-            "stage": "post_birth",
+            "stage": "postbirth",
             "data": {"test_key1": "test_value1"}
         }
         # Execute
@@ -273,7 +273,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
 
         d = Registration.objects.last()
         self.assertEqual(d.source.name, 'test_source_normaluser')
-        self.assertEqual(d.stage, 'post_birth')
+        self.assertEqual(d.stage, 'postbirth')
         self.assertEqual(d.validated, False)
         self.assertEqual(d.data, {"test_key1": "test_value1"})
 
@@ -281,7 +281,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
         # Setup
         self.make_source_adminuser()
         post_data = {
-            "stage": "pre_birth",
+            "stage": "prebirth",
             "data": {"test_key1": "test_value1"},
             "validated": True
         }
@@ -294,6 +294,6 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
 
         d = Registration.objects.last()
         self.assertEqual(d.source.name, 'test_source_adminuser')
-        self.assertEqual(d.stage, 'pre_birth')
+        self.assertEqual(d.stage, 'prebirth')
         self.assertEqual(d.validated, False)  # Should ignore True post_data
         self.assertEqual(d.data, {"test_key1": "test_value1"})
