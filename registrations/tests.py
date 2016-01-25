@@ -621,6 +621,36 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         self.assertEqual(registration.data["reg_type"], "pbl_loss")
         self.assertEqual(registration.validated, True)
 
+    def test_validate_pregnancy_too_long(self):
+        # Setup
+        registration_data = {
+            "stage": "prebirth",
+            "data": REG_DATA["hw_pre_id"].copy(),
+            "source": self.make_source_adminuser()
+        }
+        registration_data["data"]["last_period_date"] = "20130101"
+        registration = Registration.objects.create(**registration_data)
+        # Execute
+        v = validate_registration.validate(registration)
+        # Check
+        self.assertEqual(v, "Failure")
+        self.assertEqual(registration.validated, False)
+
+    def test_validate_pregnancy_too_short(self):
+        # Setup
+        registration_data = {
+            "stage": "prebirth",
+            "data": REG_DATA["hw_pre_id"].copy(),
+            "source": self.make_source_adminuser()
+        }
+        registration_data["data"]["last_period_date"] = "20150816"
+        registration = Registration.objects.create(**registration_data)
+        # Execute
+        v = validate_registration.validate(registration)
+        # Check
+        self.assertEqual(v, "Failure")
+        self.assertEqual(registration.validated, False)
+
     def test_validate_registration_run_success(self):
         # Setup
         registration_data = {

@@ -22,3 +22,5 @@ Health worker registrations require additional information:
 - mama_id_type
 - mama_id_no OR mama_dob
 - hiv messages?
+
+Registrations that show a pregnancy period shorter than 1 week or longer than 42 weeks will be rejected server side.

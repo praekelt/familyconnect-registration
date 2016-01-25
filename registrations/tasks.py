@@ -61,8 +61,8 @@ def calc_pregnancy_week_lmp(today, lmp):
     last_period_date = datetime.datetime.strptime(lmp, "%Y%m%d")
     time_diff = today - last_period_date
     preg_weeks = int(time_diff.days / 7)
-    # You can't be less than two weeks pregnant
-    if preg_weeks <= 1:
+    # You can't be one week pregnant (smaller numbers will be rejected)
+    if preg_weeks == 1:
         preg_weeks = 2
     return preg_weeks
 
@@ -92,6 +92,12 @@ class ValidateRegistration(Task):
                 if (field == "mama_dob" and
                    registration_data["mama_id_type"] != "other"):
                     return False
+                # Check that last_period_date is in the past and < 42 weeks ago
+                if field == "last_period_date":
+                    preg_weeks = calc_pregnancy_week_lmp(
+                        get_today(), registration_data[field])
+                    if not (2 <= preg_weeks <= 42):
+                        return False
             if field == "msg_receiver":
                 if not is_valid_msg_receiver(registration_data[field]):
                     return False
