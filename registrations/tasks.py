@@ -73,6 +73,10 @@ class ValidateRegistration(Task):
             if field in ["last_period_date", "baby_dob", "mama_dob"]:
                 if not is_valid_date(registration_data[field]):
                     return False
+                # Check that if mama_dob is provided, the ID type is correct
+                if (field == "mama_dob" and
+                   registration_data["mama_id_type"] != "other"):
+                    return False
             if field == "msg_receiver":
                 if not is_valid_msg_receiver(registration_data[field]):
                     return False
@@ -88,6 +92,9 @@ class ValidateRegistration(Task):
                     return False
             if field == "mama_id_no":
                 if not is_valid_id_no(registration_data[field]):
+                    return False
+                # Check that if ID no is provided, the ID type is correct
+                if not registration_data["mama_id_type"] == "ugandan_id":
                     return False
         return True
 
@@ -122,27 +129,39 @@ class ValidateRegistration(Task):
                 registration.source.authority in ["hw_limited", "hw_full"] and
                 set(hw_pre_id).issubset(data_fields)):  # ignore extra data
             if self.check_field_values(hw_pre_id, registration.data):
-                print('whooop!')
-                # registration.data.reg_type = "hw_pre_id"
-                # registration.data.week = 1  # TODO calc week
-                # registration.save()
+                registration.data["reg_type"] = "hw_pre_id"
+                registration.data["preg_week"] = 1  # TODO calc week
+                registration.save()
                 return True
-            print('1')
+
         # HW registration, prebirth, dob
         if (registration.stage == "prebirth" and
                 registration.source.authority in ["hw_limited", "hw_full"] and
                 set(hw_pre_dob).issubset(data_fields)):
-            print('2')
+            if self.check_field_values(hw_pre_dob, registration.data):
+                registration.data["reg_type"] = "hw_pre_dob"
+                registration.data["preg_week"] = 1  # TODO calc week
+                registration.save()
+                return True
+
         # HW registration, postbirth, id
         elif (registration.stage == "postbirth" and
               registration.source.authority in ["hw_limited", "hw_full"] and
               set(hw_post_id).issubset(data_fields)):
-            print('3')
+            if self.check_field_values(hw_post_id, registration.data):
+                registration.data["reg_type"] = "hw_post_id"
+                registration.data["baby_age"] = 1  # TODO calc age
+                registration.save()
+                return True
         # HW registration, postbirth, dob
         elif (registration.stage == "postbirth" and
               registration.source.authority in ["hw_limited", "hw_full"] and
               set(hw_post_dob).issubset(data_fields)):
-            print('4')
+            if self.check_field_values(hw_post_dob, registration.data):
+                registration.data["reg_type"] = "hw_post_dob"
+                registration.data["baby_age"] = 1  # TODO calc age
+                registration.save()
+                return True
         # Public registration (currently only prebirth)
         elif (registration.stage == "prebirth" and
               registration.source.authority in ["patient", "advisor"] and
@@ -153,6 +172,10 @@ class ValidateRegistration(Task):
               set(pbl_loss).issubset(data_fields)):
             print('6')
         else:
+            print(registration.stage)
+            print(registration.source.authority)
+            print(data_fields)
+            print(set(hw_post_id).issubset(data_fields))
             print('invalid data set provided')
         return 'something'
 

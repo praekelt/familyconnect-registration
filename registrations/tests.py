@@ -20,7 +20,15 @@ REG_FIELDS = {
     "hw_pre_id": [
         "contact", "registered_by", "language", "msg_type",
         "last_period_date", "msg_receiver", "hoh_name", "hoh_surname",
-        "mama_name", "mama_surname", "mama_id_type", "mama_id_no"]
+        "mama_name", "mama_surname", "mama_id_type", "mama_id_no"],
+    "hw_pre_dob": [
+        "contact", "registered_by", "language", "msg_type",
+        "last_period_date", "msg_receiver", "hoh_name", "hoh_surname",
+        "mama_name", "mama_surname", "mama_id_type", "mama_dob"],
+    "hw_post_id": [
+        "contact", "registered_by", "language", "msg_type",
+        "baby_dob", "msg_receiver", "hoh_name", "hoh_surname",
+        "mama_name", "mama_surname", "mama_id_type", "mama_id_no"],
 }
 
 REG_DATA = {
@@ -37,7 +45,49 @@ REG_DATA = {
         "mama_surname": "the government",
         "mama_id_type": "ugandan_id",
         "mama_id_no": "12345"
-    }
+    },
+    "hw_pre_dob": {
+        "contact": str(uuid.uuid4()),
+        "registered_by": str(uuid.uuid4()),
+        "language": "english",
+        "msg_type": "sms",
+        "last_period_date": "20150202",
+        "msg_receiver": "trusted_friend",
+        "hoh_name": "bob",
+        "hoh_surname": "the builder",
+        "mama_name": "sue",
+        "mama_surname": "the government",
+        "mama_id_type": "other",
+        "mama_dob": "19900707"
+    },
+    "hw_post_id": {
+        "contact": str(uuid.uuid4()),
+        "registered_by": str(uuid.uuid4()),
+        "language": "english",
+        "msg_type": "sms",
+        "baby_dob": "20150202",
+        "msg_receiver": "trusted_friend",
+        "hoh_name": "bob",
+        "hoh_surname": "the builder",
+        "mama_name": "sue",
+        "mama_surname": "the government",
+        "mama_id_type": "ugandan_id",
+        "mama_id_no": "12345"
+    },
+    "hw_post_dob": {
+        "contact": str(uuid.uuid4()),
+        "registered_by": str(uuid.uuid4()),
+        "language": "english",
+        "msg_type": "sms",
+        "baby_dob": "20150202",
+        "msg_receiver": "trusted_friend",
+        "hoh_name": "bob",
+        "hoh_surname": "the builder",
+        "mama_name": "sue",
+        "mama_surname": "the government",
+        "mama_id_type": "other",
+        "mama_dob": "19900707"
+    },
 }
 
 
@@ -452,16 +502,62 @@ class TestFieldValidation(AuthenticatedAPITestCase):
 
 class TestRegistrationValidation(AuthenticatedAPITestCase):
 
-    def test_validate_hw_prebirth(self):
+    def test_validate_hw_prebirth_id(self):
         # Setup
-        source = self.make_source_adminuser()
         registration_data = {
             "stage": "prebirth",
             "data": REG_DATA["hw_pre_id"],
-            "source": source
+            "source": self.make_source_adminuser()
         }
         registration = Registration.objects.create(**registration_data)
         # Execute
         v = validate_registration.validate(registration)
         # Check
         self.assertEqual(v, True)
+        self.assertEqual(registration.data["reg_type"], "hw_pre_id")
+        self.assertEqual(registration.data["preg_week"], 1)
+
+    def test_validate_hw_prebirth_dob(self):
+        # Setup
+        registration_data = {
+            "stage": "prebirth",
+            "data": REG_DATA["hw_pre_dob"],
+            "source": self.make_source_adminuser()
+        }
+        registration = Registration.objects.create(**registration_data)
+        # Execute
+        v = validate_registration.validate(registration)
+        # Check
+        self.assertEqual(v, True)
+        self.assertEqual(registration.data["reg_type"], "hw_pre_dob")
+        self.assertEqual(registration.data["preg_week"], 1)
+
+    def test_validate_hw_postbirth_id(self):
+        # Setup
+        registration_data = {
+            "stage": "postbirth",
+            "data": REG_DATA["hw_post_id"],
+            "source": self.make_source_adminuser()
+        }
+        registration = Registration.objects.create(**registration_data)
+        # Execute
+        v = validate_registration.validate(registration)
+        # Check
+        self.assertEqual(v, True)
+        self.assertEqual(registration.data["reg_type"], "hw_post_id")
+        self.assertEqual(registration.data["baby_age"], 1)
+
+    def test_validate_hw_postbirth_dob(self):
+        # Setup
+        registration_data = {
+            "stage": "postbirth",
+            "data": REG_DATA["hw_post_dob"],
+            "source": self.make_source_adminuser()
+        }
+        registration = Registration.objects.create(**registration_data)
+        # Execute
+        v = validate_registration.validate(registration)
+        # Check
+        self.assertEqual(v, True)
+        self.assertEqual(registration.data["reg_type"], "hw_post_dob")
+        self.assertEqual(registration.data["baby_age"], 1)
