@@ -63,6 +63,7 @@ class ValidateRegistration(Task):
         for field in fields:
             if field in ["contact", "registered_by"]:
                 if not is_valid_uuid(registration_data[field]):
+                    l.info("")
                     return False
             if field == "language":
                 if not is_valid_lang(registration_data[field]):
@@ -111,6 +112,7 @@ class ValidateRegistration(Task):
                         "mama_id_type", "mama_id_no"]
         fields_hw_dob = ["hoh_name", "hoh_surname", "mama_name",
                          "mama_surname", "mama_id_type", "mama_dob"]
+
         # Perhaps the below should rather be hardcoded to save a tiny bit of
         # processing time for each registration
         hw_pre_id = list(set(fields_general) | set(fields_prebirth) |
@@ -131,9 +133,9 @@ class ValidateRegistration(Task):
             if self.check_field_values(hw_pre_id, registration.data):
                 registration.data["reg_type"] = "hw_pre_id"
                 registration.data["preg_week"] = 1  # TODO calc week
+                registration.validated = True
                 registration.save()
-                return True
-
+                return "Success"
         # HW registration, prebirth, dob
         if (registration.stage == "prebirth" and
                 registration.source.authority in ["hw_limited", "hw_full"] and
@@ -141,9 +143,9 @@ class ValidateRegistration(Task):
             if self.check_field_values(hw_pre_dob, registration.data):
                 registration.data["reg_type"] = "hw_pre_dob"
                 registration.data["preg_week"] = 1  # TODO calc week
+                registration.validated = True
                 registration.save()
-                return True
-
+                return "Success"
         # HW registration, postbirth, id
         elif (registration.stage == "postbirth" and
               registration.source.authority in ["hw_limited", "hw_full"] and
@@ -151,8 +153,9 @@ class ValidateRegistration(Task):
             if self.check_field_values(hw_post_id, registration.data):
                 registration.data["reg_type"] = "hw_post_id"
                 registration.data["baby_age"] = 1  # TODO calc age
+                registration.validated = True
                 registration.save()
-                return True
+                return "Success"
         # HW registration, postbirth, dob
         elif (registration.stage == "postbirth" and
               registration.source.authority in ["hw_limited", "hw_full"] and
@@ -160,24 +163,30 @@ class ValidateRegistration(Task):
             if self.check_field_values(hw_post_dob, registration.data):
                 registration.data["reg_type"] = "hw_post_dob"
                 registration.data["baby_age"] = 1  # TODO calc age
+                registration.validated = True
                 registration.save()
-                return True
+                return "Success"
         # Public registration (currently only prebirth)
         elif (registration.stage == "prebirth" and
               registration.source.authority in ["patient", "advisor"] and
               set(pbl_pre).issubset(data_fields)):
-            print('5')
+            if self.check_field_values(pbl_pre, registration.data):
+                registration.data["reg_type"] = "pbl_pre"
+                registration.data["preg_week"] = 1  # TODO calc week
+                registration.validated = True
+                registration.save()
+                return "Success"
+        # Loss registration
         elif (registration.stage == "loss" and
               registration.source.authority in ["patient", "advisor"] and
               set(pbl_loss).issubset(data_fields)):
-            print('6')
+            if self.check_field_values(pbl_loss, registration.data):
+                registration.data["reg_type"] = "pbl_loss"
+                registration.validated = True
+                registration.save()
+                return "Success"
         else:
-            print(registration.stage)
-            print(registration.source.authority)
-            print(data_fields)
-            print(set(hw_post_id).issubset(data_fields))
-            print('invalid data set provided')
-        return 'something'
+            return "Failure"
 
     def run(self, registration_id, **kwargs):
         """ Sets the registration's validated field to True if
@@ -186,15 +195,8 @@ class ValidateRegistration(Task):
         l = self.get_logger(**kwargs)
         l.info("Looking up the registration")
         registration = Registration.objects.get(id=registration_id)
-        print(registration.validated)
+        validation_result = self.validate(registration)
 
-        self.validate(registration)
-
-        l.info("Setting the validated field to true")
-        registration.validated = True
-        registration.save()
-        print(registration.validated)
-
-        return "work in progress"
+        return "Validation completed - %s" % validation_result
 
 validate_registration = ValidateRegistration()
