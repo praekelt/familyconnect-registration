@@ -23,41 +23,33 @@ class AuthenticatedAPITestCase(APITestCase):
         data = {
             "name": "test_source_adminuser",
             "authority": "hw_full",
+            "user": User.objects.get(username='testadminuser')
         }
-        user = User.objects.get(username='testadminuser')
-        data["user"] = user
-        source = Source.objects.create(**data)
-        return source
+        return Source.objects.create(**data)
 
     def make_source_normaluser(self):
         data = {
             "name": "test_source_normaluser",
             "authority": "hw_full",
+            "user": User.objects.get(username='testnormaluser')
         }
-        user = User.objects.get(username='testnormaluser')
-        data["user"] = user
-        source = Source.objects.create(**data)
-        return source
+        return Source.objects.create(**data)
 
     def make_registration_adminuser(self):
-        source = self.make_source_adminuser()
         data = {
             "stage": "prebirth",
             "data": {"test_adminuser_reg_key": "test_adminuser_reg_value"},
-            "source": source
+            "source": self.make_source_adminuser()
         }
-        registration = Registration.objects.create(**data)
-        return registration
+        return Registration.objects.create(**data)
 
     def make_registration_normaluser(self):
-        source = self.make_source_normaluser()
         data = {
             "stage": "postbirth",
             "data": {"test_normaluser_reg_key": "test_normaluser_reg_value"},
-            "source": source
+            "source": self.make_source_normaluser()
         }
-        registration = Registration.objects.create(**data)
-        return registration
+        return Registration.objects.create(**data)
 
     def setUp(self):
         super(AuthenticatedAPITestCase, self).setUp()
