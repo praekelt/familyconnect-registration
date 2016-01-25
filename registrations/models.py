@@ -45,8 +45,8 @@ class Registration(models.Model):
     """
 
     STAGE_CHOICES = (
-        ('pre_birth', "Mother is pregnant"),
-        ('post_birth', "Baby has been born"),
+        ('prebirth', "Mother is pregnant"),
+        ('postbirth', "Baby has been born"),
         ('loss', "Baby loss")
     )
 

@@ -20,7 +20,7 @@ def is_valid_date(date):
 
 
 def is_valid_uuid(id):
-    return type(id) is uuid.UUID
+    return len(id) == 36 and id[14] == '4' and id[19] in ['a', 'b', '8', '9']
 
 
 def is_valid_lang(lang):
@@ -104,24 +104,29 @@ class ValidateRegistration(Task):
                         "mama_id_type", "mama_id_no"]
         fields_hw_dob = ["hoh_name", "hoh_surname", "mama_name",
                          "mama_surname", "mama_id_type", "mama_dob"]
-        hw_pre_id = list(set(fields_general) | set(fields_prebirth |
-                         set(fields_hw_id)))
-        hw_pre_dob = list(set(fields_general) | set(fields_prebirth |
-                          set(fields_hw_dob)))
-        hw_post_id = list(set(fields_general) | set(fields_postbirth |
-                          set(fields_hw_id)))
-        hw_post_dob = list(set(fields_general) | set(fields_postbirth |
-                           set(fields_hw_dob)))
+        # Perhaps the below should rather be hardcoded to save a tiny bit of
+        # processing time for each registration
+        hw_pre_id = list(set(fields_general) | set(fields_prebirth) |
+                         set(fields_hw_id))
+        hw_pre_dob = list(set(fields_general) | set(fields_prebirth) |
+                          set(fields_hw_dob))
+        hw_post_id = list(set(fields_general) | set(fields_postbirth) |
+                          set(fields_hw_id))
+        hw_post_dob = list(set(fields_general) | set(fields_postbirth) |
+                           set(fields_hw_dob))
         pbl_pre = list(set(fields_general) | set(fields_prebirth))
         pbl_loss = list(set(fields_general) | set(fields_loss))
 
         # HW registration, prebirth, id
         if (registration.stage == "prebirth" and
                 registration.source.authority in ["hw_limited", "hw_full"] and
-                set(hw_pre_id).issubset(data_fields)):
+                set(hw_pre_id).issubset(data_fields)):  # ignore extra data
             if self.check_field_values(hw_pre_id, registration.data):
-                print('super')
-                pass
+                print('whooop!')
+                # registration.data.reg_type = "hw_pre_id"
+                # registration.data.week = 1  # TODO calc week
+                # registration.save()
+                return True
             print('1')
         # HW registration, prebirth, dob
         if (registration.stage == "prebirth" and

@@ -1,4 +1,5 @@
 import json
+import uuid
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -8,7 +9,36 @@ from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
 
 from .models import Source, Registration, registration_post_save
-from .tasks import validate_registration
+from .tasks import (
+    validate_registration,
+    is_valid_date, is_valid_uuid, is_valid_lang, is_valid_msg_type,
+    is_valid_msg_receiver, is_valid_loss_reason, is_valid_name,
+    is_valid_id_type, is_valid_id_no)
+
+
+REG_FIELDS = {
+    "hw_pre_id": [
+        "contact", "registered_by", "language", "msg_type",
+        "last_period_date", "msg_receiver", "hoh_name", "hoh_surname",
+        "mama_name", "mama_surname", "mama_id_type", "mama_id_no"]
+}
+
+REG_DATA = {
+    "hw_pre_id": {
+        "contact": str(uuid.uuid4()),
+        "registered_by": str(uuid.uuid4()),
+        "language": "english",
+        "msg_type": "sms",
+        "last_period_date": "20150202",
+        "msg_receiver": "trusted_friend",
+        "hoh_name": "bob",
+        "hoh_surname": "the builder",
+        "mama_name": "sue",
+        "mama_surname": "the government",
+        "mama_id_type": "ugandan_id",
+        "mama_id_no": "12345"
+    }
+}
 
 
 class APITestCase(TestCase):
@@ -322,13 +352,122 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
         self.assertEqual(d.data, {"test_key1": "test_value1"})
 
 
+class TestFieldValidation(AuthenticatedAPITestCase):
+
+    def test_is_valid_date(self):
+        # Setup
+        good_date = "19820315"
+        invalid_date = "19830229"
+        bad_date = "1234"
+        # Execute
+        # Check
+        self.assertEqual(is_valid_date(good_date), True)
+        self.assertEqual(is_valid_date(invalid_date), False)
+        self.assertEqual(is_valid_date(bad_date), False)
+
+    def test_is_valid_uuid(self):
+        # Setup
+        valid_uuid = str(uuid.uuid4())
+        invalid_uuid = "f9bfa2d7-5b62-4011-8eac-76bca34781a"
+        # Execute
+        # Check
+        self.assertEqual(is_valid_uuid(valid_uuid), True)
+        self.assertEqual(is_valid_uuid(invalid_uuid), False)
+
+    def test_is_valid_lang(self):
+        # Setup
+        valid_lang = "runyakore"
+        invalid_lang = "french"
+        # Execute
+        # Check
+        self.assertEqual(is_valid_lang(valid_lang), True)
+        self.assertEqual(is_valid_lang(invalid_lang), False)
+
+    def test_is_valid_msg_type(self):
+        # Setup
+        valid_msg_type = "sms"
+        invalid_msg_type = "voice"
+        # Execute
+        # Check
+        self.assertEqual(is_valid_msg_type(valid_msg_type), True)
+        self.assertEqual(is_valid_msg_type(invalid_msg_type), False)
+
+    def test_is_valid_msg_receiver(self):
+        # Setup
+        valid_msg_receiver = "head_of_household"
+        invalid_msg_receiver = "mama"
+        # Execute
+        # Check
+        self.assertEqual(is_valid_msg_receiver(valid_msg_receiver), True)
+        self.assertEqual(is_valid_msg_receiver(invalid_msg_receiver), False)
+
+    def test_is_valid_loss_reason(self):
+        # Setup
+        valid_loss_reason = "miscarriage"
+        invalid_loss_reason = "other"
+        # Execute
+        # Check
+        self.assertEqual(is_valid_loss_reason(valid_loss_reason), True)
+        self.assertEqual(is_valid_loss_reason(invalid_loss_reason), False)
+
+    def test_is_valid_name(self):
+        # Setup
+        valid_name1 = "Namey"
+        valid_name2 = "Zoé"
+        valid_name3 = "1234"
+        invalid_name = 10375075
+        # Execute
+        # Check
+        self.assertEqual(is_valid_name(valid_name1), True)
+        self.assertEqual(is_valid_name(valid_name2), True)
+        self.assertEqual(is_valid_name(valid_name3), True)  # TODO reject
+        self.assertEqual(is_valid_name(invalid_name), False)
+
+    def test_is_valid_id_type(self):
+        # Setup
+        valid_id_type = "ugandan_id"
+        invalid_id_type = "sa_id"
+        # Execute
+        # Check
+        self.assertEqual(is_valid_id_type(valid_id_type), True)
+        self.assertEqual(is_valid_id_type(invalid_id_type), False)
+
+    def test_is_valid_id_no(self):
+        # Setup
+        valid_id_no = "12345"
+        invalid_id_no = 12345
+        # Execute
+        # Check
+        self.assertEqual(is_valid_id_no(valid_id_no), True)
+        self.assertEqual(is_valid_id_no(invalid_id_no), False)
+
+    def test_check_field_values(self):
+        # Setup
+        valid_hw_pre_id_registration_data = REG_DATA["hw_pre_id"]
+        invalid_hw_pre_id_registration_data = REG_DATA["hw_pre_id"].copy()
+        invalid_hw_pre_id_registration_data["msg_receiver"] = "somebody"
+        # Execute
+        cfv_valid = validate_registration.check_field_values(
+            REG_FIELDS["hw_pre_id"], valid_hw_pre_id_registration_data)
+        cfv_invalid = validate_registration.check_field_values(
+            REG_FIELDS["hw_pre_id"], invalid_hw_pre_id_registration_data)
+        # Check
+        self.assertEqual(cfv_valid, True)
+        self.assertEqual(cfv_invalid, False)
+
+
 class TestRegistrationValidation(AuthenticatedAPITestCase):
 
-    def test_validate_registration(self):
+    def test_validate_hw_prebirth(self):
         # Setup
-        registration = self.make_registration_adminuser()
+        source = self.make_source_adminuser()
+        registration_data = {
+            "stage": "prebirth",
+            "data": REG_DATA["hw_pre_id"],
+            "source": source
+        }
+        registration = Registration.objects.create(**registration_data)
         # Execute
-        validate_registration.apply_async(
-            kwargs={"registration_id": registration.id})
+        v = validate_registration.validate(registration)
         # Check
-        self.assertEqual(1, 2)
+        self.assertEqual(v, True)
