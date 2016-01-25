@@ -126,7 +126,8 @@ class APITestCase(TestCase):
 class AuthenticatedAPITestCase(APITestCase):
 
     def _replace_post_save_hooks(self):
-        has_listeners = lambda: post_save.has_listeners(Registration)
+        def has_listeners():
+            return post_save.has_listeners(Registration)
         assert has_listeners(), (
             "Registration model has no post_save listeners. Make sure"
             " helpers cleaned up properly in earlier tests.")
@@ -136,7 +137,8 @@ class AuthenticatedAPITestCase(APITestCase):
             " helpers cleaned up properly in earlier tests.")
 
     def _restore_post_save_hooks(self):
-        has_listeners = lambda: post_save.has_listeners(Registration)
+        def has_listeners():
+            return post_save.has_listeners(Registration)
         assert not has_listeners(), (
             "Registration model still has post_save listeners. Make sure"
             " helpers removed them properly in earlier tests.")
