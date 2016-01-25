@@ -1,5 +1,6 @@
 import json
 import uuid
+import datetime
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -14,6 +15,11 @@ from .tasks import (
     is_valid_date, is_valid_uuid, is_valid_lang, is_valid_msg_type,
     is_valid_msg_receiver, is_valid_loss_reason, is_valid_name,
     is_valid_id_type, is_valid_id_no)
+from registrations import tasks
+
+
+def override_get_today():
+    return datetime.datetime.strptime("20150817", "%Y%m%d")
 
 
 REG_FIELDS = {
@@ -114,6 +120,7 @@ class APITestCase(TestCase):
         self.adminclient = APIClient()
         self.normalclient = APIClient()
         self.otherclient = APIClient()
+        tasks.get_today = override_get_today
 
 
 class AuthenticatedAPITestCase(APITestCase):
@@ -532,7 +539,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         # Check
         self.assertEqual(v, "Success")
         self.assertEqual(registration.data["reg_type"], "hw_pre_id")
-        self.assertEqual(registration.data["preg_week"], 1)
+        self.assertEqual(registration.data["preg_week"], 28)
         self.assertEqual(registration.validated, True)
 
     def test_validate_hw_prebirth_dob(self):
@@ -548,7 +555,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         # Check
         self.assertEqual(v, "Success")
         self.assertEqual(registration.data["reg_type"], "hw_pre_dob")
-        self.assertEqual(registration.data["preg_week"], 1)
+        self.assertEqual(registration.data["preg_week"], 28)
         self.assertEqual(registration.validated, True)
 
     def test_validate_hw_postbirth_id(self):
@@ -596,7 +603,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         # Check
         self.assertEqual(v, "Success")
         self.assertEqual(registration.data["reg_type"], "pbl_pre")
-        self.assertEqual(registration.data["preg_week"], 1)
+        self.assertEqual(registration.data["preg_week"], 28)
         self.assertEqual(registration.validated, True)
 
     def test_validate_pbl_loss(self):

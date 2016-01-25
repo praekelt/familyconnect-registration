@@ -1,5 +1,4 @@
 import datetime
-import uuid
 import six  # for Python 2 and 3 string type compatibility
 
 from celery.task import Task
@@ -9,6 +8,10 @@ from .models import Registration
 
 
 logger = get_task_logger(__name__)
+
+
+def get_today():
+    return datetime.today()
 
 
 def is_valid_date(date):
@@ -52,6 +55,18 @@ def is_valid_id_no(id_no):
     return isinstance(id_no, six.string_types)  # TODO proper id validation
 
 
+def calc_pregnancy_week_lmp(today, lmp):
+    """ Calculate how far along the mother's prenancy is in weeks.
+    """
+    last_period_date = datetime.datetime.strptime(lmp, "%Y%m%d")
+    time_diff = today - last_period_date
+    preg_weeks = int(time_diff.days / 7)
+    # You can't be less than two weeks pregnant
+    if preg_weeks <= 1:
+        preg_weeks = 2
+    return preg_weeks
+
+
 class ValidateRegistration(Task):
     """ Task to validate a registration model entry's registration
     data.
@@ -63,7 +78,6 @@ class ValidateRegistration(Task):
         for field in fields:
             if field in ["contact", "registered_by"]:
                 if not is_valid_uuid(registration_data[field]):
-                    l.info("")
                     return False
             if field == "language":
                 if not is_valid_lang(registration_data[field]):
@@ -132,7 +146,8 @@ class ValidateRegistration(Task):
                 set(hw_pre_id).issubset(data_fields)):  # ignore extra data
             if self.check_field_values(hw_pre_id, registration.data):
                 registration.data["reg_type"] = "hw_pre_id"
-                registration.data["preg_week"] = 1  # TODO calc week
+                registration.data["preg_week"] = calc_pregnancy_week_lmp(
+                    get_today(), registration.data["last_period_date"])
                 registration.validated = True
                 registration.save()
                 return "Success"
@@ -142,7 +157,8 @@ class ValidateRegistration(Task):
                 set(hw_pre_dob).issubset(data_fields)):
             if self.check_field_values(hw_pre_dob, registration.data):
                 registration.data["reg_type"] = "hw_pre_dob"
-                registration.data["preg_week"] = 1  # TODO calc week
+                registration.data["preg_week"] = calc_pregnancy_week_lmp(
+                    get_today(), registration.data["last_period_date"])
                 registration.validated = True
                 registration.save()
                 return "Success"
@@ -172,7 +188,8 @@ class ValidateRegistration(Task):
               set(pbl_pre).issubset(data_fields)):
             if self.check_field_values(pbl_pre, registration.data):
                 registration.data["reg_type"] = "pbl_pre"
-                registration.data["preg_week"] = 1  # TODO calc week
+                registration.data["preg_week"] = calc_pregnancy_week_lmp(
+                    get_today(), registration.data["last_period_date"])
                 registration.validated = True
                 registration.save()
                 return "Success"
