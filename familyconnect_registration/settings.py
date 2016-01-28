@@ -149,6 +149,14 @@ CELERY_IMPORTS = (
 )
 
 CELERY_CREATE_MISSING_QUEUES = True
+CELERY_ROUTES = {
+    'celery.backend_cleanup': {
+        'queue': 'mediumpriority',
+    },
+    'registrations.tasks.validate_registration': {
+        'queue': 'priority',
+    },
+}
 
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
