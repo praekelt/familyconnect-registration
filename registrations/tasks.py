@@ -128,7 +128,6 @@ class ValidateRegistration(Task):
         data_fields = registration.data.keys()
         fields_general = ["contact", "registered_by", "language", "msg_type"]
         fields_prebirth = ["last_period_date", "msg_receiver"]
-        fields_postbirth = ["baby_dob", "msg_receiver"]
         fields_loss = ["loss_reason"]
         fields_hw_id = ["hoh_name", "hoh_surname", "mama_name", "mama_surname",
                         "mama_id_type", "mama_id_no"]
@@ -141,10 +140,6 @@ class ValidateRegistration(Task):
                          set(fields_hw_id))
         hw_pre_dob = list(set(fields_general) | set(fields_prebirth) |
                           set(fields_hw_dob))
-        hw_post_id = list(set(fields_general) | set(fields_postbirth) |
-                          set(fields_hw_id))
-        hw_post_dob = list(set(fields_general) | set(fields_postbirth) |
-                           set(fields_hw_dob))
         pbl_pre = list(set(fields_general) | set(fields_prebirth))
         pbl_loss = list(set(fields_general) | set(fields_loss))
 
@@ -175,38 +170,6 @@ class ValidateRegistration(Task):
                 registration.data["reg_type"] = "hw_pre_dob"
                 registration.data["preg_week"] = calc_pregnancy_week_lmp(
                     get_today(), registration.data["last_period_date"])
-                registration.validated = True
-                registration.save()
-                return True
-            else:
-                registration.data["invalid_fields"] = invalid_fields
-                registration.save()
-                return False
-        # HW registration, postbirth, id
-        elif (registration.stage == "postbirth" and
-              registration.source.authority in ["hw_limited", "hw_full"] and
-              set(hw_post_id).issubset(data_fields)):
-            invalid_fields = self.check_field_values(
-                hw_post_id, registration.data)
-            if invalid_fields == []:
-                registration.data["reg_type"] = "hw_post_id"
-                registration.data["baby_age"] = 1  # TODO calc age
-                registration.validated = True
-                registration.save()
-                return True
-            else:
-                registration.data["invalid_fields"] = invalid_fields
-                registration.save()
-                return False
-        # HW registration, postbirth, dob
-        elif (registration.stage == "postbirth" and
-              registration.source.authority in ["hw_limited", "hw_full"] and
-              set(hw_post_dob).issubset(data_fields)):
-            invalid_fields = self.check_field_values(
-                hw_post_dob, registration.data)
-            if invalid_fields == []:
-                registration.data["reg_type"] = "hw_post_dob"
-                registration.data["baby_age"] = 1  # TODO calc age
                 registration.validated = True
                 registration.save()
                 return True

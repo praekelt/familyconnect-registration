@@ -58,34 +58,6 @@ REG_DATA = {
         "mama_id_type": "other",
         "mama_dob": "19900707"
     },
-    "hw_post_id": {
-        "contact": str(uuid.uuid4()),
-        "registered_by": str(uuid.uuid4()),
-        "language": "english",
-        "msg_type": "sms",
-        "baby_dob": "20150202",
-        "msg_receiver": "trusted_friend",
-        "hoh_name": "bob",
-        "hoh_surname": "the builder",
-        "mama_name": "sue",
-        "mama_surname": "zin",
-        "mama_id_type": "ugandan_id",
-        "mama_id_no": "12345"
-    },
-    "hw_post_dob": {
-        "contact": str(uuid.uuid4()),
-        "registered_by": str(uuid.uuid4()),
-        "language": "english",
-        "msg_type": "sms",
-        "baby_dob": "20150202",
-        "msg_receiver": "trusted_friend",
-        "hoh_name": "bob",
-        "hoh_surname": "the builder",
-        "mama_name": "sue",
-        "mama_surname": "zin",
-        "mama_id_type": "other",
-        "mama_dob": "19900707"
-    },
     "pbl_pre": {
         "contact": str(uuid.uuid4()),
         "registered_by": str(uuid.uuid4()),
@@ -198,7 +170,7 @@ class AuthenticatedAPITestCase(APITestCase):
 
     def make_registration_normaluser(self):
         data = {
-            "stage": "postbirth",
+            "stage": "prebirth",
             "data": {"test_normaluser_reg_key": "test_normaluser_reg_value"},
             "source": self.make_source_normaluser()
         }
@@ -412,7 +384,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
         # Setup
         self.make_source_normaluser()
         post_data = {
-            "stage": "postbirth",
+            "stage": "prebirth",
             "data": {"test_key1": "test_value1"}
         }
         # Execute
@@ -424,7 +396,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
 
         d = Registration.objects.last()
         self.assertEqual(d.source.name, 'test_source_normaluser')
-        self.assertEqual(d.stage, 'postbirth')
+        self.assertEqual(d.stage, 'prebirth')
         self.assertEqual(d.validated, False)
         self.assertEqual(d.data, {"test_key1": "test_value1"})
 
@@ -586,38 +558,6 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         self.assertEqual(v, True)
         self.assertEqual(registration.data["reg_type"], "hw_pre_dob")
         self.assertEqual(registration.data["preg_week"], 28)
-        self.assertEqual(registration.validated, True)
-
-    def test_validate_hw_postbirth_id(self):
-        # Setup
-        registration_data = {
-            "stage": "postbirth",
-            "data": REG_DATA["hw_post_id"],
-            "source": self.make_source_adminuser()
-        }
-        registration = Registration.objects.create(**registration_data)
-        # Execute
-        v = validate_registration.validate(registration)
-        # Check
-        self.assertEqual(v, True)
-        self.assertEqual(registration.data["reg_type"], "hw_post_id")
-        self.assertEqual(registration.data["baby_age"], 1)
-        self.assertEqual(registration.validated, True)
-
-    def test_validate_hw_postbirth_dob(self):
-        # Setup
-        registration_data = {
-            "stage": "postbirth",
-            "data": REG_DATA["hw_post_dob"],
-            "source": self.make_source_adminuser()
-        }
-        registration = Registration.objects.create(**registration_data)
-        # Execute
-        v = validate_registration.validate(registration)
-        # Check
-        self.assertEqual(v, True)
-        self.assertEqual(registration.data["reg_type"], "hw_post_dob")
-        self.assertEqual(registration.data["baby_age"], 1)
         self.assertEqual(registration.validated, True)
 
     def test_validate_pbl_prebirth(self):
