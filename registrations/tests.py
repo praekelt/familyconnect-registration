@@ -1,12 +1,145 @@
-import json
+﻿import json
+import uuid
+import datetime
 
 from django.contrib.auth.models import User
 from django.test import TestCase
+from django.db.models.signals import post_save
 from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
 
-from .models import Source, Registration
+from .models import Source, Registration, registration_post_save
+from .tasks import (
+    validate_registration,
+    is_valid_date, is_valid_uuid, is_valid_lang, is_valid_msg_type,
+    is_valid_msg_receiver, is_valid_loss_reason, is_valid_name,
+    is_valid_id_type, is_valid_id_no)
+from registrations import tasks
+
+
+def override_get_today():
+    return datetime.datetime.strptime("20150817", "%Y%m%d")
+
+
+REG_FIELDS = {
+    "hw_pre_id": [
+        "contact", "registered_by", "language", "msg_type",
+        "last_period_date", "msg_receiver", "hoh_name", "hoh_surname",
+        "mama_name", "mama_surname", "mama_id_type", "mama_id_no"],
+}
+
+REG_DATA = {
+    "hw_pre_id": {
+        "contact": str(uuid.uuid4()),
+        "registered_by": str(uuid.uuid4()),
+        "language": "english",
+        "msg_type": "sms",
+        "last_period_date": "20150202",
+        "msg_receiver": "trusted_friend",
+        "hoh_name": "bob",
+        "hoh_surname": "the builder",
+        "mama_name": "sue",
+        "mama_surname": "zin",
+        "mama_id_type": "ugandan_id",
+        "mama_id_no": "12345"
+    },
+    "hw_pre_dob": {
+        "contact": str(uuid.uuid4()),
+        "registered_by": str(uuid.uuid4()),
+        "language": "english",
+        "msg_type": "sms",
+        "last_period_date": "20150202",
+        "msg_receiver": "trusted_friend",
+        "hoh_name": "bob",
+        "hoh_surname": "the builder",
+        "mama_name": "sue",
+        "mama_surname": "zin",
+        "mama_id_type": "other",
+        "mama_dob": "19900707"
+    },
+    "hw_post_id": {
+        "contact": str(uuid.uuid4()),
+        "registered_by": str(uuid.uuid4()),
+        "language": "english",
+        "msg_type": "sms",
+        "baby_dob": "20150202",
+        "msg_receiver": "trusted_friend",
+        "hoh_name": "bob",
+        "hoh_surname": "the builder",
+        "mama_name": "sue",
+        "mama_surname": "zin",
+        "mama_id_type": "ugandan_id",
+        "mama_id_no": "12345"
+    },
+    "hw_post_dob": {
+        "contact": str(uuid.uuid4()),
+        "registered_by": str(uuid.uuid4()),
+        "language": "english",
+        "msg_type": "sms",
+        "baby_dob": "20150202",
+        "msg_receiver": "trusted_friend",
+        "hoh_name": "bob",
+        "hoh_surname": "the builder",
+        "mama_name": "sue",
+        "mama_surname": "zin",
+        "mama_id_type": "other",
+        "mama_dob": "19900707"
+    },
+    "pbl_pre": {
+        "contact": str(uuid.uuid4()),
+        "registered_by": str(uuid.uuid4()),
+        "language": "english",
+        "msg_type": "sms",
+        "last_period_date": "20150202",
+        "msg_receiver": "trusted_friend"
+    },
+    "pbl_loss": {
+        "contact": str(uuid.uuid4()),
+        "registered_by": str(uuid.uuid4()),
+        "language": "english",
+        "msg_type": "sms",
+        "loss_reason": "miscarriage"
+    },
+    "bad_data_combination": {
+        "contact": str(uuid.uuid4()),
+        "registered_by": str(uuid.uuid4()),
+        "language": "english",
+        "msg_type": "sms",
+        "last_period_date": "20150202",
+        "msg_receiver": "trusted_friend",
+        "hoh_name": "bob",
+        "hoh_surname": "the builder",
+    },
+    "bad_fields": {
+        "contact": str(uuid.uuid4()),
+        "registered_by": str(uuid.uuid4()),
+        "language": "english",
+        "msg_type": "sms",
+        "last_period_date": "2015020",
+        "msg_receiver": "trusted friend",
+        "hoh_name": "bob",
+        "hoh_surname": "the builder",
+        "mama_name": "sue",
+        "mama_surname": "zin",
+        "mama_id_type": "ugandan_id",
+        "mama_id_no": "12345"
+    },
+    "bad_lmp": {
+        "contact": str(uuid.uuid4()),
+        "registered_by": str(uuid.uuid4()),
+        "language": "english",
+        "msg_type": "sms",
+        "last_period_date": "20140202",
+        "msg_receiver": "trusted_friend",
+        "hoh_name": "bob",
+        "hoh_surname": "the builder",
+        "mama_name": "sue",
+        "mama_surname": "zin",
+        "mama_id_type": "ugandan_id",
+        "mama_id_no": "12345"
+    },
+}
 
 
 class APITestCase(TestCase):
@@ -15,9 +148,29 @@ class APITestCase(TestCase):
         self.adminclient = APIClient()
         self.normalclient = APIClient()
         self.otherclient = APIClient()
+        tasks.get_today = override_get_today
 
 
 class AuthenticatedAPITestCase(APITestCase):
+
+    def _replace_post_save_hooks(self):
+        def has_listeners():
+            return post_save.has_listeners(Registration)
+        assert has_listeners(), (
+            "Registration model has no post_save listeners. Make sure"
+            " helpers cleaned up properly in earlier tests.")
+        post_save.disconnect(registration_post_save, sender=Registration)
+        assert not has_listeners(), (
+            "Registration model still has post_save listeners. Make sure"
+            " helpers cleaned up properly in earlier tests.")
+
+    def _restore_post_save_hooks(self):
+        def has_listeners():
+            return post_save.has_listeners(Registration)
+        assert not has_listeners(), (
+            "Registration model still has post_save listeners. Make sure"
+            " helpers removed them properly in earlier tests.")
+        post_save.connect(registration_post_save, sender=Registration)
 
     def make_source_adminuser(self):
         data = {
@@ -30,7 +183,7 @@ class AuthenticatedAPITestCase(APITestCase):
     def make_source_normaluser(self):
         data = {
             "name": "test_source_normaluser",
-            "authority": "hw_full",
+            "authority": "patient",
             "user": User.objects.get(username='testnormaluser')
         }
         return Source.objects.create(**data)
@@ -53,6 +206,7 @@ class AuthenticatedAPITestCase(APITestCase):
 
     def setUp(self):
         super(AuthenticatedAPITestCase, self).setUp()
+        self._replace_post_save_hooks()
 
         # Normal User setup
         self.normalusername = 'testnormaluser'
@@ -77,6 +231,9 @@ class AuthenticatedAPITestCase(APITestCase):
         self.admintoken = admintoken.key
         self.adminclient.credentials(
             HTTP_AUTHORIZATION='Token ' + self.admintoken)
+
+    def tearDown(self):
+        self._restore_post_save_hooks()
 
 
 class TestLogin(AuthenticatedAPITestCase):
@@ -291,3 +448,296 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
         self.assertEqual(d.stage, 'prebirth')
         self.assertEqual(d.validated, False)  # Should ignore True post_data
         self.assertEqual(d.data, {"test_key1": "test_value1"})
+
+
+class TestFieldValidation(AuthenticatedAPITestCase):
+
+    def test_is_valid_date(self):
+        # Setup
+        good_date = "19820315"
+        invalid_date = "19830229"
+        bad_date = "1234"
+        # Execute
+        # Check
+        self.assertEqual(is_valid_date(good_date), True)
+        self.assertEqual(is_valid_date(invalid_date), False)
+        self.assertEqual(is_valid_date(bad_date), False)
+
+    def test_is_valid_uuid(self):
+        # Setup
+        valid_uuid = str(uuid.uuid4())
+        invalid_uuid = "f9bfa2d7-5b62-4011-8eac-76bca34781a"
+        # Execute
+        # Check
+        self.assertEqual(is_valid_uuid(valid_uuid), True)
+        self.assertEqual(is_valid_uuid(invalid_uuid), False)
+
+    def test_is_valid_lang(self):
+        # Setup
+        valid_lang = "runyakore"
+        invalid_lang = "french"
+        # Execute
+        # Check
+        self.assertEqual(is_valid_lang(valid_lang), True)
+        self.assertEqual(is_valid_lang(invalid_lang), False)
+
+    def test_is_valid_msg_type(self):
+        # Setup
+        valid_msg_type = "sms"
+        invalid_msg_type = "voice"
+        # Execute
+        # Check
+        self.assertEqual(is_valid_msg_type(valid_msg_type), True)
+        self.assertEqual(is_valid_msg_type(invalid_msg_type), False)
+
+    def test_is_valid_msg_receiver(self):
+        # Setup
+        valid_msg_receiver = "head_of_household"
+        invalid_msg_receiver = "mama"
+        # Execute
+        # Check
+        self.assertEqual(is_valid_msg_receiver(valid_msg_receiver), True)
+        self.assertEqual(is_valid_msg_receiver(invalid_msg_receiver), False)
+
+    def test_is_valid_loss_reason(self):
+        # Setup
+        valid_loss_reason = "miscarriage"
+        invalid_loss_reason = "other"
+        # Execute
+        # Check
+        self.assertEqual(is_valid_loss_reason(valid_loss_reason), True)
+        self.assertEqual(is_valid_loss_reason(invalid_loss_reason), False)
+
+    def test_is_valid_name(self):
+        # Setup
+        valid_name1 = "Namey"
+        valid_name2 = "Zoé"
+        valid_name3 = "1234"
+        invalid_name = 10375075
+        # Execute
+        # Check
+        self.assertEqual(is_valid_name(valid_name1), True)
+        self.assertEqual(is_valid_name(valid_name2), True)
+        self.assertEqual(is_valid_name(valid_name3), True)  # TODO reject
+        self.assertEqual(is_valid_name(invalid_name), False)
+
+    def test_is_valid_id_type(self):
+        # Setup
+        valid_id_type = "ugandan_id"
+        invalid_id_type = "sa_id"
+        # Execute
+        # Check
+        self.assertEqual(is_valid_id_type(valid_id_type), True)
+        self.assertEqual(is_valid_id_type(invalid_id_type), False)
+
+    def test_is_valid_id_no(self):
+        # Setup
+        valid_id_no = "12345"
+        invalid_id_no = 12345
+        # Execute
+        # Check
+        self.assertEqual(is_valid_id_no(valid_id_no), True)
+        self.assertEqual(is_valid_id_no(invalid_id_no), False)
+
+    def test_check_field_values(self):
+        # Setup
+        valid_hw_pre_id_registration_data = REG_DATA["hw_pre_id"]
+        invalid_hw_pre_id_registration_data = REG_DATA["hw_pre_id"].copy()
+        invalid_hw_pre_id_registration_data["msg_receiver"] = "somebody"
+        # Execute
+        cfv_valid = validate_registration.check_field_values(
+            REG_FIELDS["hw_pre_id"], valid_hw_pre_id_registration_data)
+        cfv_invalid = validate_registration.check_field_values(
+            REG_FIELDS["hw_pre_id"], invalid_hw_pre_id_registration_data)
+        # Check
+        self.assertEqual(cfv_valid, [])
+        self.assertEqual(cfv_invalid, ['msg_receiver'])
+
+
+class TestRegistrationValidation(AuthenticatedAPITestCase):
+
+    def test_validate_hw_prebirth_id(self):
+        # Setup
+        registration_data = {
+            "stage": "prebirth",
+            "data": REG_DATA["hw_pre_id"],
+            "source": self.make_source_adminuser()
+        }
+        registration = Registration.objects.create(**registration_data)
+        # Execute
+        v = validate_registration.validate(registration)
+        # Check
+        self.assertEqual(v, True)
+        self.assertEqual(registration.data["reg_type"], "hw_pre_id")
+        self.assertEqual(registration.data["preg_week"], 28)
+        self.assertEqual(registration.validated, True)
+
+    def test_validate_hw_prebirth_dob(self):
+        # Setup
+        registration_data = {
+            "stage": "prebirth",
+            "data": REG_DATA["hw_pre_dob"],
+            "source": self.make_source_adminuser()
+        }
+        registration = Registration.objects.create(**registration_data)
+        # Execute
+        v = validate_registration.validate(registration)
+        # Check
+        self.assertEqual(v, True)
+        self.assertEqual(registration.data["reg_type"], "hw_pre_dob")
+        self.assertEqual(registration.data["preg_week"], 28)
+        self.assertEqual(registration.validated, True)
+
+    def test_validate_hw_postbirth_id(self):
+        # Setup
+        registration_data = {
+            "stage": "postbirth",
+            "data": REG_DATA["hw_post_id"],
+            "source": self.make_source_adminuser()
+        }
+        registration = Registration.objects.create(**registration_data)
+        # Execute
+        v = validate_registration.validate(registration)
+        # Check
+        self.assertEqual(v, True)
+        self.assertEqual(registration.data["reg_type"], "hw_post_id")
+        self.assertEqual(registration.data["baby_age"], 1)
+        self.assertEqual(registration.validated, True)
+
+    def test_validate_hw_postbirth_dob(self):
+        # Setup
+        registration_data = {
+            "stage": "postbirth",
+            "data": REG_DATA["hw_post_dob"],
+            "source": self.make_source_adminuser()
+        }
+        registration = Registration.objects.create(**registration_data)
+        # Execute
+        v = validate_registration.validate(registration)
+        # Check
+        self.assertEqual(v, True)
+        self.assertEqual(registration.data["reg_type"], "hw_post_dob")
+        self.assertEqual(registration.data["baby_age"], 1)
+        self.assertEqual(registration.validated, True)
+
+    def test_validate_pbl_prebirth(self):
+        # Setup
+        registration_data = {
+            "stage": "prebirth",
+            "data": REG_DATA["pbl_pre"],
+            "source": self.make_source_normaluser()
+        }
+        registration = Registration.objects.create(**registration_data)
+        # Execute
+        v = validate_registration.validate(registration)
+        # Check
+        self.assertEqual(v, True)
+        self.assertEqual(registration.data["reg_type"], "pbl_pre")
+        self.assertEqual(registration.data["preg_week"], 28)
+        self.assertEqual(registration.validated, True)
+
+    def test_validate_pbl_loss(self):
+        # Setup
+        registration_data = {
+            "stage": "loss",
+            "data": REG_DATA["pbl_loss"],
+            "source": self.make_source_normaluser()
+        }
+        registration = Registration.objects.create(**registration_data)
+        # Execute
+        v = validate_registration.validate(registration)
+        # Check
+        self.assertEqual(v, True)
+        self.assertEqual(registration.data["reg_type"], "pbl_loss")
+        self.assertEqual(registration.validated, True)
+
+    def test_validate_pregnancy_too_long(self):
+        # Setup
+        registration_data = {
+            "stage": "prebirth",
+            "data": REG_DATA["hw_pre_id"].copy(),
+            "source": self.make_source_adminuser()
+        }
+        registration_data["data"]["last_period_date"] = "20130101"
+        registration = Registration.objects.create(**registration_data)
+        # Execute
+        v = validate_registration.validate(registration)
+        # Check
+        self.assertEqual(v, False)
+        self.assertEqual(registration.validated, False)
+
+    def test_validate_pregnancy_too_short(self):
+        # Setup
+        registration_data = {
+            "stage": "prebirth",
+            "data": REG_DATA["hw_pre_id"].copy(),
+            "source": self.make_source_adminuser()
+        }
+        registration_data["data"]["last_period_date"] = "20150816"
+        registration = Registration.objects.create(**registration_data)
+        # Execute
+        v = validate_registration.validate(registration)
+        # Check
+        self.assertEqual(v, False)
+        self.assertEqual(registration.validated, False)
+
+    def test_validate_registration_run_success(self):
+        # Setup
+        registration_data = {
+            "stage": "prebirth",
+            "data": REG_DATA["hw_pre_id"],
+            "source": self.make_source_adminuser()
+        }
+        registration = Registration.objects.create(**registration_data)
+        # Execute
+        result = validate_registration.apply_async(args=[registration.id])
+        # Check
+        self.assertEqual(result.get(), "Validation completed - Success")
+
+    def test_validate_registration_run_failure_bad_combination(self):
+        # Setup
+        registration_data = {
+            "stage": "prebirth",
+            "data": REG_DATA["bad_data_combination"],
+            "source": self.make_source_adminuser()
+        }
+        registration = Registration.objects.create(**registration_data)
+        # Execute
+        result = validate_registration.apply_async(args=[registration.id])
+        # Check
+        self.assertEqual(result.get(), "Validation completed - Failure")
+        d = Registration.objects.get(id=registration.id)
+        self.assertEqual(d.data["invalid_fields"],
+                         "Invalid combination of fields")
+
+    def test_validate_registration_run_failure_bad_fields(self):
+        # Setup
+        registration_data = {
+            "stage": "prebirth",
+            "data": REG_DATA["bad_fields"],
+            "source": self.make_source_adminuser()
+        }
+        registration = Registration.objects.create(**registration_data)
+        # Execute
+        result = validate_registration.apply_async(args=[registration.id])
+        # Check
+        self.assertEqual(result.get(), "Validation completed - Failure")
+        d = Registration.objects.get(id=registration.id)
+        self.assertEqual(sorted(d.data["invalid_fields"]),
+                         sorted(["msg_receiver", "last_period_date"]))
+
+    def test_validate_registration_run_failure_bad_lmp(self):
+        # Setup
+        registration_data = {
+            "stage": "prebirth",
+            "data": REG_DATA["bad_lmp"],
+            "source": self.make_source_adminuser()
+        }
+        registration = Registration.objects.create(**registration_data)
+        # Execute
+        result = validate_registration.apply_async(args=[registration.id])
+        # Check
+        self.assertEqual(result.get(), "Validation completed - Failure")
+        d = Registration.objects.get(id=registration.id)
+        self.assertEqual(d.data["invalid_fields"],
+                         ["last_period_date out of range"])

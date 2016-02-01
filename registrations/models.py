@@ -3,6 +3,8 @@ import uuid
 from django.contrib.postgres.fields import JSONField
 from django.contrib.auth.models import User
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 class Source(models.Model):
@@ -65,3 +67,13 @@ class Registration(models.Model):
 
     def __str__(self):  # __unicode__ on Python 2
         return str(self.id)
+
+
+@receiver(post_save, sender=Registration)
+def registration_post_save(sender, instance, created, **kwargs):
+    """ Post save hook to fire Registration validation task
+    """
+    if created:
+        from .tasks import validate_registration
+        validate_registration.apply_async(
+            kwargs={"registration_id": instance.id})
