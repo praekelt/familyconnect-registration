@@ -163,6 +163,7 @@ class AuthenticatedAPITestCase(APITestCase):
     def make_registration_adminuser(self):
         data = {
             "stage": "prebirth",
+            "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
             "data": {"test_adminuser_reg_key": "test_adminuser_reg_value"},
             "source": self.make_source_adminuser()
         }
@@ -171,6 +172,7 @@ class AuthenticatedAPITestCase(APITestCase):
     def make_registration_normaluser(self):
         data = {
             "stage": "prebirth",
+            "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
             "data": {"test_normaluser_reg_key": "test_normaluser_reg_value"},
             "source": self.make_source_normaluser()
         }
@@ -365,6 +367,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
         self.make_source_adminuser()
         post_data = {
             "stage": "prebirth",
+            "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
             "data": {"test_key1": "test_value1"}
         }
         # Execute
@@ -377,6 +380,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
         d = Registration.objects.last()
         self.assertEqual(d.source.name, 'test_source_adminuser')
         self.assertEqual(d.stage, 'prebirth')
+        self.assertEqual(d.mother_id, "mother01-63e2-4acc-9b94-26663b9bc267")
         self.assertEqual(d.validated, False)
         self.assertEqual(d.data, {"test_key1": "test_value1"})
 
@@ -385,6 +389,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
         self.make_source_normaluser()
         post_data = {
             "stage": "prebirth",
+            "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
             "data": {"test_key1": "test_value1"}
         }
         # Execute
@@ -397,6 +402,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
         d = Registration.objects.last()
         self.assertEqual(d.source.name, 'test_source_normaluser')
         self.assertEqual(d.stage, 'prebirth')
+        self.assertEqual(d.mother_id, "mother01-63e2-4acc-9b94-26663b9bc267")
         self.assertEqual(d.validated, False)
         self.assertEqual(d.data, {"test_key1": "test_value1"})
 
@@ -405,6 +411,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
         self.make_source_adminuser()
         post_data = {
             "stage": "prebirth",
+            "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
             "data": {"test_key1": "test_value1"},
             "validated": True
         }
@@ -418,6 +425,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
         d = Registration.objects.last()
         self.assertEqual(d.source.name, 'test_source_adminuser')
         self.assertEqual(d.stage, 'prebirth')
+        self.assertEqual(d.mother_id, "mother01-63e2-4acc-9b94-26663b9bc267")
         self.assertEqual(d.validated, False)  # Should ignore True post_data
         self.assertEqual(d.data, {"test_key1": "test_value1"})
 
@@ -532,6 +540,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         # Setup
         registration_data = {
             "stage": "prebirth",
+            "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
             "data": REG_DATA["hw_pre_id"],
             "source": self.make_source_adminuser()
         }
@@ -548,6 +557,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         # Setup
         registration_data = {
             "stage": "prebirth",
+            "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
             "data": REG_DATA["hw_pre_dob"],
             "source": self.make_source_adminuser()
         }
@@ -564,6 +574,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         # Setup
         registration_data = {
             "stage": "prebirth",
+            "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
             "data": REG_DATA["pbl_pre"],
             "source": self.make_source_normaluser()
         }
@@ -595,6 +606,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         # Setup
         registration_data = {
             "stage": "prebirth",
+            "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
             "data": REG_DATA["hw_pre_id"].copy(),
             "source": self.make_source_adminuser()
         }
@@ -610,6 +622,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         # Setup
         registration_data = {
             "stage": "prebirth",
+            "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
             "data": REG_DATA["hw_pre_id"].copy(),
             "source": self.make_source_adminuser()
         }
@@ -625,6 +638,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         # Setup
         registration_data = {
             "stage": "prebirth",
+            "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
             "data": REG_DATA["hw_pre_id"],
             "source": self.make_source_adminuser()
         }
@@ -638,6 +652,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         # Setup
         registration_data = {
             "stage": "prebirth",
+            "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
             "data": REG_DATA["bad_data_combination"],
             "source": self.make_source_adminuser()
         }
@@ -654,6 +669,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         # Setup
         registration_data = {
             "stage": "prebirth",
+            "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
             "data": REG_DATA["bad_fields"],
             "source": self.make_source_adminuser()
         }
@@ -670,6 +686,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         # Setup
         registration_data = {
             "stage": "prebirth",
+            "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
             "data": REG_DATA["bad_lmp"],
             "source": self.make_source_adminuser()
         }
