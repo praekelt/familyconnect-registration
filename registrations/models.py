@@ -81,3 +81,42 @@ def registration_post_save(sender, instance, created, **kwargs):
         from .tasks import validate_registration
         validate_registration.apply_async(
             kwargs={"registration_id": instance.id})
+
+
+@python_2_unicode_compatible
+class SubscriptionRequest(models.Model):
+    """ A data model that maps to the Stagebased Store
+    Subscription model. Created after a successful Registration
+    validation.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    contact = models.CharField(max_length=36, null=False, blank=False)
+    messageset = models.IntegerField(null=False, blank=False)
+    next_sequence_number = models.IntegerField(default=1, null=False,
+                                               blank=False)
+    lang = models.CharField(max_length=6, null=False, blank=False)
+    schedule = models.IntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def serialize_hook(self, hook):
+        # optional, there are serialization defaults
+        # we recommend always sending the Hook
+        # metadata along for the ride as well
+        return {
+            'hook': hook.dict(),
+            'data': {
+                'id': str(self.id),
+                'contact': self.contact,
+                'messageset': self.messageset,
+                'next_sequence_number': self.next_sequence_number,
+                'lang': self.lang,
+                'schedule': self.schedule,
+                'created_at': self.created_at.isoformat(),
+                'updated_at': self.updated_at.isoformat()
+            }
+        }
+
+    def __str__(self):
+        return str(self.id)
