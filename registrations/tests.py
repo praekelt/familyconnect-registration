@@ -24,7 +24,7 @@ def override_get_today():
 
 REG_FIELDS = {
     "hw_pre_id": [
-        "contact", "registered_by", "language", "msg_type",
+        "contact", "operator_id", "language", "msg_type",
         "last_period_date", "msg_receiver", "hoh_name", "hoh_surname",
         "mama_name", "mama_surname", "mama_id_type", "mama_id_no"],
 }
@@ -32,7 +32,7 @@ REG_FIELDS = {
 REG_DATA = {
     "hw_pre_id": {
         "contact": str(uuid.uuid4()),
-        "registered_by": str(uuid.uuid4()),
+        "operator_id": str(uuid.uuid4()),
         "language": "english",
         "msg_type": "sms",
         "last_period_date": "20150202",
@@ -46,7 +46,7 @@ REG_DATA = {
     },
     "hw_pre_dob": {
         "contact": str(uuid.uuid4()),
-        "registered_by": str(uuid.uuid4()),
+        "operator_id": str(uuid.uuid4()),
         "language": "english",
         "msg_type": "sms",
         "last_period_date": "20150202",
@@ -60,7 +60,7 @@ REG_DATA = {
     },
     "pbl_pre": {
         "contact": str(uuid.uuid4()),
-        "registered_by": str(uuid.uuid4()),
+        "operator_id": str(uuid.uuid4()),
         "language": "english",
         "msg_type": "sms",
         "last_period_date": "20150202",
@@ -68,14 +68,14 @@ REG_DATA = {
     },
     "pbl_loss": {
         "contact": str(uuid.uuid4()),
-        "registered_by": str(uuid.uuid4()),
+        "operator_id": str(uuid.uuid4()),
         "language": "english",
         "msg_type": "sms",
         "loss_reason": "miscarriage"
     },
     "bad_data_combination": {
         "contact": str(uuid.uuid4()),
-        "registered_by": str(uuid.uuid4()),
+        "operator_id": str(uuid.uuid4()),
         "language": "english",
         "msg_type": "sms",
         "last_period_date": "20150202",
@@ -85,7 +85,7 @@ REG_DATA = {
     },
     "bad_fields": {
         "contact": str(uuid.uuid4()),
-        "registered_by": str(uuid.uuid4()),
+        "operator_id": str(uuid.uuid4()),
         "language": "english",
         "msg_type": "sms",
         "last_period_date": "2015020",
@@ -99,7 +99,7 @@ REG_DATA = {
     },
     "bad_lmp": {
         "contact": str(uuid.uuid4()),
-        "registered_by": str(uuid.uuid4()),
+        "operator_id": str(uuid.uuid4()),
         "language": "english",
         "msg_type": "sms",
         "last_period_date": "20140202",
