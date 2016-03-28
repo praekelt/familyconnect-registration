@@ -24,15 +24,16 @@ def override_get_today():
 
 REG_FIELDS = {
     "hw_pre_id": [
-        "contact", "operator_id", "language", "msg_type",
+        "hoh_id", "operator_id", "language", "msg_type",
         "last_period_date", "msg_receiver", "hoh_name", "hoh_surname",
         "mama_name", "mama_surname", "mama_id_type", "mama_id_no"],
 }
 
 REG_DATA = {
     "hw_pre_id": {
-        "contact": str(uuid.uuid4()),
-        "operator_id": str(uuid.uuid4()),
+        "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
+        "receiver_id": "friend01-63e2-4acc-9b94-26663b9bc267",
+        "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
         "language": "english",
         "msg_type": "sms",
         "last_period_date": "20150202",
@@ -45,8 +46,9 @@ REG_DATA = {
         "mama_id_no": "12345"
     },
     "hw_pre_dob": {
-        "contact": str(uuid.uuid4()),
-        "operator_id": str(uuid.uuid4()),
+        "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
+        "receiver_id": "friend01-63e2-4acc-9b94-26663b9bc267",
+        "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
         "language": "english",
         "msg_type": "sms",
         "last_period_date": "20150202",
@@ -59,23 +61,26 @@ REG_DATA = {
         "mama_dob": "19900707"
     },
     "pbl_pre": {
-        "contact": str(uuid.uuid4()),
-        "operator_id": str(uuid.uuid4()),
+        "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
+        "receiver_id": "friend01-63e2-4acc-9b94-26663b9bc267",
+        "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
         "language": "english",
         "msg_type": "sms",
         "last_period_date": "20150202",
         "msg_receiver": "trusted_friend"
     },
     "pbl_loss": {
-        "contact": str(uuid.uuid4()),
-        "operator_id": str(uuid.uuid4()),
+        "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
+        "receiver_id": "friend01-63e2-4acc-9b94-26663b9bc267",
+        "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
         "language": "english",
         "msg_type": "sms",
         "loss_reason": "miscarriage"
     },
     "bad_data_combination": {
-        "contact": str(uuid.uuid4()),
-        "operator_id": str(uuid.uuid4()),
+        "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
+        "receiver_id": "friend01-63e2-4acc-9b94-26663b9bc267",
+        "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
         "language": "english",
         "msg_type": "sms",
         "last_period_date": "20150202",
@@ -84,8 +89,9 @@ REG_DATA = {
         "hoh_surname": "the builder",
     },
     "bad_fields": {
-        "contact": str(uuid.uuid4()),
-        "operator_id": str(uuid.uuid4()),
+        "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
+        "receiver_id": "friend01-63e2-4acc-9b94-26663b9bc267",
+        "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
         "language": "english",
         "msg_type": "sms",
         "last_period_date": "2015020",
@@ -98,8 +104,9 @@ REG_DATA = {
         "mama_id_no": "12345"
     },
     "bad_lmp": {
-        "contact": str(uuid.uuid4()),
-        "operator_id": str(uuid.uuid4()),
+        "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
+        "receiver_id": "friend01-63e2-4acc-9b94-26663b9bc267",
+        "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
         "language": "english",
         "msg_type": "sms",
         "last_period_date": "20140202",
