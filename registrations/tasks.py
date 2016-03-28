@@ -144,6 +144,45 @@ class ValidateRegistration(Task):
         pbl_pre = list(set(fields_general) | set(fields_prebirth))
         pbl_loss = list(set(fields_general) | set(fields_loss))
 
+        # Check if mother_id is a valid UUID
+        if not is_valid_uuid(registration.mother_id):
+            registration.data["invalid_fields"] = "Invalid UUID mother_id"
+            registration.save()
+            return False
+
+        if "msg_receiver" in registration.data.keys():
+            # Reject registrations where the hoh is the receiver but the
+            # hoh_id and receiver_id differs
+            if (registration.data["msg_receiver"] == "head_of_household" and
+               registration.data["hoh_id"] != registration.data[
+                    "receiver_id"]):
+                registration.data["invalid_fields"] = "hoh_id should be " \
+                    "the same as receiver_id"
+                registration.save()
+                return False
+            # Reject registrations where the mother is the receiver but the
+            # mother_id and receiver_id differs
+            elif (registration.data["msg_receiver"] == "mother_to_be" and
+                  registration.mother_id != registration.data["receiver_id"]):
+                registration.data["invalid_fields"] = "mother_id should be " \
+                    "the same as receiver_id"
+                registration.save()
+                return False
+            # Reject registrations where the family / friend is the receiver
+            # but the receiver_id is the same as the mother_id or hoh_id
+            elif (registration.data["msg_receiver"] in
+                  ["family_member", "trusted_friend"] and (
+                    registration.data["receiver_id"] ==
+                    registration.data["hoh_id"] or (
+                    registration.data["receiver_id"] ==
+                    registration.mother_id))):
+                print(registration.mother_id)
+                print(registration.data)
+                registration.data["invalid_fields"] = "receiver_id should" \
+                    "differ from hoh_id and mother_id"
+                registration.save()
+                return False
+
         # HW registration, prebirth, id
         if (registration.stage == "prebirth" and
                 registration.source.authority in ["hw_limited", "hw_full"] and

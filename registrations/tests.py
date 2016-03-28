@@ -30,14 +30,14 @@ REG_FIELDS = {
 }
 
 REG_DATA = {
-    "hw_pre_id": {
+    "hw_pre_id_hoh": {
         "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
-        "receiver_id": "friend01-63e2-4acc-9b94-26663b9bc267",
+        "receiver_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
         "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
         "language": "english",
         "msg_type": "sms",
         "last_period_date": "20150202",
-        "msg_receiver": "trusted_friend",
+        "msg_receiver": "head_of_household",
         "hoh_name": "bob",
         "hoh_surname": "the builder",
         "mama_name": "sue",
@@ -45,7 +45,37 @@ REG_DATA = {
         "mama_id_type": "ugandan_id",
         "mama_id_no": "12345"
     },
-    "hw_pre_dob": {
+    "hw_pre_id_mother": {
+        "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
+        "receiver_id": "mother01-63e2-4acc-9b94-26663b9bc267",
+        "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
+        "language": "english",
+        "msg_type": "sms",
+        "last_period_date": "20150202",
+        "msg_receiver": "mother_to_be",
+        "hoh_name": "bob",
+        "hoh_surname": "the builder",
+        "mama_name": "sue",
+        "mama_surname": "zin",
+        "mama_id_type": "ugandan_id",
+        "mama_id_no": "12345"
+    },
+    "hw_pre_id_family": {
+        "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
+        "receiver_id": "friend01-63e2-4acc-9b94-26663b9bc267",
+        "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
+        "language": "english",
+        "msg_type": "sms",
+        "last_period_date": "20150202",
+        "msg_receiver": "family_member",
+        "hoh_name": "bob",
+        "hoh_surname": "the builder",
+        "mama_name": "sue",
+        "mama_surname": "zin",
+        "mama_id_type": "ugandan_id",
+        "mama_id_no": "12345"
+    },
+    "hw_pre_dob_friend": {
         "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
         "receiver_id": "friend01-63e2-4acc-9b94-26663b9bc267",
         "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
@@ -528,8 +558,9 @@ class TestFieldValidation(AuthenticatedAPITestCase):
 
     def test_check_field_values(self):
         # Setup
-        valid_hw_pre_id_registration_data = REG_DATA["hw_pre_id"]
-        invalid_hw_pre_id_registration_data = REG_DATA["hw_pre_id"].copy()
+        valid_hw_pre_id_registration_data = REG_DATA["hw_pre_id_mother"]
+        invalid_hw_pre_id_registration_data = REG_DATA[
+            "hw_pre_id_mother"].copy()
         invalid_hw_pre_id_registration_data["msg_receiver"] = "somebody"
         # Execute
         cfv_valid = validate_registration.check_field_values(
@@ -543,12 +574,12 @@ class TestFieldValidation(AuthenticatedAPITestCase):
 
 class TestRegistrationValidation(AuthenticatedAPITestCase):
 
-    def test_validate_hw_prebirth_id(self):
+    def test_validate_hw_prebirth_id_hoh(self):
         # Setup
         registration_data = {
             "stage": "prebirth",
             "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
-            "data": REG_DATA["hw_pre_id"],
+            "data": REG_DATA["hw_pre_id_hoh"].copy(),
             "source": self.make_source_adminuser()
         }
         registration = Registration.objects.create(**registration_data)
@@ -560,12 +591,46 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         self.assertEqual(registration.data["preg_week"], 28)
         self.assertEqual(registration.validated, True)
 
-    def test_validate_hw_prebirth_dob(self):
+    def test_validate_hw_prebirth_id_mother(self):
         # Setup
         registration_data = {
             "stage": "prebirth",
             "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
-            "data": REG_DATA["hw_pre_dob"],
+            "data": REG_DATA["hw_pre_id_mother"].copy(),
+            "source": self.make_source_adminuser()
+        }
+        registration = Registration.objects.create(**registration_data)
+        # Execute
+        v = validate_registration.validate(registration)
+        # Check
+        self.assertEqual(v, True)
+        self.assertEqual(registration.data["reg_type"], "hw_pre_id")
+        self.assertEqual(registration.data["preg_week"], 28)
+        self.assertEqual(registration.validated, True)
+
+    def test_validate_hw_prebirth_id_family(self):
+        # Setup
+        registration_data = {
+            "stage": "prebirth",
+            "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
+            "data": REG_DATA["hw_pre_id_family"].copy(),
+            "source": self.make_source_adminuser()
+        }
+        registration = Registration.objects.create(**registration_data)
+        # Execute
+        v = validate_registration.validate(registration)
+        # Check
+        self.assertEqual(v, True)
+        self.assertEqual(registration.data["reg_type"], "hw_pre_id")
+        self.assertEqual(registration.data["preg_week"], 28)
+        self.assertEqual(registration.validated, True)
+
+    def test_validate_hw_prebirth_dob_friend(self):
+        # Setup
+        registration_data = {
+            "stage": "prebirth",
+            "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
+            "data": REG_DATA["hw_pre_dob_friend"].copy(),
             "source": self.make_source_adminuser()
         }
         registration = Registration.objects.create(**registration_data)
@@ -582,7 +647,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         registration_data = {
             "stage": "prebirth",
             "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
-            "data": REG_DATA["pbl_pre"],
+            "data": REG_DATA["pbl_pre"].copy(),
             "source": self.make_source_normaluser()
         }
         registration = Registration.objects.create(**registration_data)
@@ -598,7 +663,8 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         # Setup
         registration_data = {
             "stage": "loss",
-            "data": REG_DATA["pbl_loss"],
+            "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
+            "data": REG_DATA["pbl_loss"].copy(),
             "source": self.make_source_normaluser()
         }
         registration = Registration.objects.create(**registration_data)
@@ -614,7 +680,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         registration_data = {
             "stage": "prebirth",
             "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
-            "data": REG_DATA["hw_pre_id"].copy(),
+            "data": REG_DATA["hw_pre_id_mother"].copy(),
             "source": self.make_source_adminuser()
         }
         registration_data["data"]["last_period_date"] = "20130101"
@@ -630,7 +696,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         registration_data = {
             "stage": "prebirth",
             "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
-            "data": REG_DATA["hw_pre_id"].copy(),
+            "data": REG_DATA["hw_pre_id_mother"].copy(),
             "source": self.make_source_adminuser()
         }
         registration_data["data"]["last_period_date"] = "20150816"
@@ -646,7 +712,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         registration_data = {
             "stage": "prebirth",
             "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
-            "data": REG_DATA["hw_pre_id"],
+            "data": REG_DATA["hw_pre_id_mother"].copy(),
             "source": self.make_source_adminuser()
         }
         registration = Registration.objects.create(**registration_data)
@@ -660,7 +726,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         registration_data = {
             "stage": "prebirth",
             "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
-            "data": REG_DATA["bad_data_combination"],
+            "data": REG_DATA["bad_data_combination"].copy(),
             "source": self.make_source_adminuser()
         }
         registration = Registration.objects.create(**registration_data)
@@ -677,7 +743,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         registration_data = {
             "stage": "prebirth",
             "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
-            "data": REG_DATA["bad_fields"],
+            "data": REG_DATA["bad_fields"].copy(),
             "source": self.make_source_adminuser()
         }
         registration = Registration.objects.create(**registration_data)
@@ -694,7 +760,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         registration_data = {
             "stage": "prebirth",
             "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
-            "data": REG_DATA["bad_lmp"],
+            "data": REG_DATA["bad_lmp"].copy(),
             "source": self.make_source_adminuser()
         }
         registration = Registration.objects.create(**registration_data)
