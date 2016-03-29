@@ -25,7 +25,6 @@ setup(
         'six==1.10.0',
         'django-rest-hooks==1.2.1',
         'requests==2.9.1',
-        'dj-static==0.0.6'
     ],
     classifiers=[
         'Development Status :: 4 - Beta',
