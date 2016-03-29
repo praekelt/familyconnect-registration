@@ -466,277 +466,58 @@ class TestChangeBaby(AuthenticatedAPITestCase):
         self.assertEqual(d.lang, "eng_UG")
         self.assertEqual(d.schedule, 3)
 
-    # @responses.activate
-    # def test_friend_only_change_baby(self):
-    #     # Setup
-    #     # make registration
-    #     self.make_registration_friend_only()
-    #     # make change object
-    #     change_data = {
-    #         "mother_id": "846877e6-afaa-43de-acb1-09f61ad4de99",
-    #         "action": "change_baby",
-    #         "data": {},
-    #         "source": self.make_source_adminuser()
-    #     }
-    #     change = Change.objects.create(**change_data)
-    #     # mock get subscription request
-    #     subscription_id = "07f4d95c-ad78-4bf1-8779-c47b428e89d0"
-    #     query_string = '?active=True&id=%s' % change_data["mother_id"]
-    #     responses.add(
-    #         responses.GET,
-    #         'http://localhost:8005/api/v1/subscriptions/%s' % query_string,
-    #         json={
-    #             "count": 1,
-    #             "next": None,
-    #             "previous": None,
-    #             "results": [{
-    #                 "id": subscription_id,
-    #                 "identity": change_data["mother_id"],
-    #                 "active": True,
-    #                 "lang": "eng_NG"
-    #             }],
-    #         },
-    #         status=200, content_type='application/json',
-    #         match_querystring=True
-    #     )
-    #     # mock patch subscription request
-    #     responses.add(
-    #         responses.PATCH,
-    #         'http://localhost:8005/api/v1/subscriptions/%s/' % subscription_id,
-    #         json={"active": False},
-    #         status=200, content_type='application/json',
-    #     )
-    #     # mock mother identity lookup
-    #     responses.add(
-    #         responses.GET,
-    #         'http://localhost:8001/api/v1/identities/%s/' % change_data[
-    #             "mother_id"],
-    #         json={
-    #             "id": change_data["mother_id"],
-    #             "version": 1,
-    #             "details": {
-    #                 "default_addr_type": "msisdn",
-    #                 "addresses": {
-    #                     "msisdn": {
-    #                         "+2345059992222": {}
-    #                     }
-    #                 },
-    #                 "receiver_role": "mother",
-    #                 "linked_to": "629eaf3c-04e5-4404-8a27-3ab3b811326a",
-    #                 "preferred_msg_type": "audio",
-    #                 "preferred_msg_days": "mon_wed",
-    #                 "preferred_msg_times": "9_11",
-    #                 "preferred_language": "hau_NG"
-    #             },
-    #             "created_at": "2015-07-10T06:13:29.693272Z",
-    #             "updated_at": "2015-07-10T06:13:29.693298Z"
-    #         },
-    #         status=200, content_type='application/json',
-    #     )
-    #     # mock mother messageset lookup
-    #     query_string = '?short_name=postbirth.mother.audio.0_12.mon_wed.9_11'
-    #     responses.add(
-    #         responses.GET,
-    #         'http://localhost:8005/api/v1/messageset/%s' % query_string,
-    #         json={
-    #             "count": 1,
-    #             "next": None,
-    #             "previous": None,
-    #             "results": [{
-    #                 "id": 2,
-    #                 "short_name": 'postbirth.mother.audio.0_12.mon_wed.9_11',
-    #                 "default_schedule": 4
-    #             }]
-    #         },
-    #         status=200, content_type='application/json',
-    #         match_querystring=True
-    #     )
-    #     # mock household messageset lookup
-    #     query_string = '?short_name=postbirth.household.text.0_52'
-    #     responses.add(
-    #         responses.GET,
-    #         'http://localhost:8005/api/v1/messageset/%s' % query_string,
-    #         json={
-    #             "count": 1,
-    #             "next": None,
-    #             "previous": None,
-    #             "results": [{
-    #                 "id": 17,
-    #                 "short_name": 'postbirth.household.text.0_52',
-    #                 "default_schedule": 3
-    #             }]
-    #         },
-    #         status=200, content_type='application/json',
-    #         match_querystring=True
-    #     )
-    #     # mock mother schedule lookup
-    #     responses.add(
-    #         responses.GET,
-    #         'http://localhost:8005/api/v1/schedule/4/',
-    #         json={"id": 4, "day_of_week": "1,3"},
-    #         status=200, content_type='application/json',
-    #     )
-    #     # mock household schedule lookup
-    #     responses.add(
-    #         responses.GET,
-    #         'http://localhost:8005/api/v1/schedule/3/',
-    #         json={"id": 3, "day_of_week": "5"},
-    #         status=200, content_type='application/json',
-    #     )
 
-    #     # Execute
-    #     result = implement_action.apply_async(args=[change.id])
+class TestChangeLanguage(AuthenticatedAPITestCase):
 
-    #     # Check
-    #     self.assertEqual(result.get(), "Change baby completed")
-    #     d_mom = SubscriptionRequest.objects.filter(
-    #         contact=change_data["mother_id"])[0]
-    #     self.assertEqual(d_mom.contact, "846877e6-afaa-43de-acb1-09f61ad4de99")
-    #     self.assertEqual(d_mom.messageset, 2)
-    #     self.assertEqual(d_mom.next_sequence_number, 1)
-    #     self.assertEqual(d_mom.lang, "hau_NG")
-    #     self.assertEqual(d_mom.schedule, 4)
+    @responses.activate
+    def test_mother_change_language(self):
+        # Setup
+        # make registration
+        self.make_registration_mother()
+        # make change object
+        change_data = {
+            "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
+            "action": "change_language",
+            "data": {
+                "new_language": "cgg_UG"
+            },
+            "source": self.make_source_adminuser()
+        }
+        change = Change.objects.create(**change_data)
+        # mock get subscription request
+        subscription_id = "subscription1-4bf1-8779-c47b428e89d0"
+        query_string = '?active=True&id=%s' % change_data["mother_id"]
+        responses.add(
+            responses.GET,
+            'http://localhost:8005/api/v1/subscriptions/%s' % query_string,
+            json={
+                "count": 1,
+                "next": None,
+                "previous": None,
+                "results": [{
+                    "id": subscription_id,
+                    "identity": change_data["mother_id"],
+                    "active": True,
+                    "lang": "eng_NG"
+                }],
+            },
+            status=200, content_type='application/json',
+            match_querystring=True
+        )
+        # mock patch subscription request
+        responses.add(
+            responses.PATCH,
+            'http://localhost:8005/api/v1/subscriptions/%s/' % subscription_id,
+            json={"lang": "cgg_UG"},
+            status=200, content_type='application/json',
+        )
 
-    #     d_hh = SubscriptionRequest.objects.filter(
-    #         contact="629eaf3c-04e5-4404-8a27-3ab3b811326a")[0]
-    #     self.assertEqual(d_hh.contact, "629eaf3c-04e5-4404-8a27-3ab3b811326a")
-    #     self.assertEqual(d_hh.messageset, 17)
-    #     self.assertEqual(d_hh.next_sequence_number, 1)
-    #     self.assertEqual(d_hh.lang, "hau_NG")
-    #     self.assertEqual(d_hh.schedule, 3)
+        # Execute
+        result = implement_action.apply_async(args=[change.id])
 
-
-# class TestChangeLanguage(AuthenticatedAPITestCase):
-
-#     @responses.activate
-#     def test_mother_only_change_language(self):
-#         # Setup
-#         # make registration
-#         self.make_registration_mother_only()
-#         # make change object
-#         change_data = {
-#             "mother_id": "846877e6-afaa-43de-acb1-09f61ad4de99",
-#             "action": "change_language",
-#             "data": {
-#                 "household_id": None,
-#                 "new_language": "pcm_NG"
-#             },
-#             "source": self.make_source_adminuser()
-#         }
-#         change = Change.objects.create(**change_data)
-#         # mock get subscription request
-#         subscription_id = "07f4d95c-ad78-4bf1-8779-c47b428e89d0"
-#         query_string = '?active=True&id=%s' % change_data["mother_id"]
-#         responses.add(
-#             responses.GET,
-#             'http://localhost:8005/api/v1/subscriptions/%s' % query_string,
-#             json={
-#                 "count": 1,
-#                 "next": None,
-#                 "previous": None,
-#                 "results": [{
-#                     "id": subscription_id,
-#                     "identity": change_data["mother_id"],
-#                     "active": True,
-#                     "lang": "eng_NG"
-#                 }],
-#             },
-#             status=200, content_type='application/json',
-#             match_querystring=True
-#         )
-#         # mock patch subscription request
-#         responses.add(
-#             responses.PATCH,
-#             'http://localhost:8005/api/v1/subscriptions/%s/' % subscription_id,
-#             json={"lang": "pcm_NG"},
-#             status=200, content_type='application/json',
-#         )
-
-#         # Execute
-#         result = implement_action.apply_async(args=[change.id])
-
-#         # Check
-#         self.assertEqual(result.get(), "Change language completed")
-#         assert len(responses.calls) == 2
-
-#     @responses.activate
-#     def test_friend_only_change_language(self):
-#         # Setup
-#         # make registration
-#         self.make_registration_friend_only()
-#         # make change object
-#         change_data = {
-#             "mother_id": "846877e6-afaa-43de-acb1-09f61ad4de99",
-#             "action": "change_language",
-#             "data": {
-#                 "household_id": "629eaf3c-04e5-4404-8a27-3ab3b811326a",
-#                 "new_language": "pcm_NG"
-#             },
-#             "source": self.make_source_adminuser()
-#         }
-#         change = Change.objects.create(**change_data)
-#         # mock mother get subscription request
-#         subscription_id = "07f4d95c-ad78-4bf1-8779-c47b428e89d0"
-#         query_string = '?active=True&id=%s' % change_data["mother_id"]
-#         responses.add(
-#             responses.GET,
-#             'http://localhost:8005/api/v1/subscriptions/%s' % query_string,
-#             json={
-#                 "count": 1,
-#                 "next": None,
-#                 "previous": None,
-#                 "results": [{
-#                     "id": subscription_id,
-#                     "identity": change_data["mother_id"],
-#                     "active": True,
-#                     "lang": "eng_NG"
-#                 }],
-#             },
-#             status=200, content_type='application/json',
-#             match_querystring=True
-#         )
-#         # mock mother patch subscription request
-#         responses.add(
-#             responses.PATCH,
-#             'http://localhost:8005/api/v1/subscriptions/%s/' % subscription_id,
-#             json={"lang": "pcm_NG"},
-#             status=200, content_type='application/json',
-#         )
-#         # mock household get subscription request
-#         subscription_id = "ece53dbd-962f-4b9a-8546-759b059a2ae1"
-#         query_string = '?active=True&id=%s' % change_data["data"][
-#             "household_id"]
-#         responses.add(
-#             responses.GET,
-#             'http://localhost:8005/api/v1/subscriptions/%s' % query_string,
-#             json={
-#                 "count": 1,
-#                 "next": None,
-#                 "previous": None,
-#                 "results": [{
-#                     "id": subscription_id,
-#                     "identity": change_data["data"]["household_id"],
-#                     "active": True,
-#                     "lang": "eng_NG"
-#                 }],
-#             },
-#             status=200, content_type='application/json',
-#             match_querystring=True
-#         )
-#         # mock mother patch subscription request
-#         responses.add(
-#             responses.PATCH,
-#             'http://localhost:8005/api/v1/subscriptions/%s/' % subscription_id,
-#             json={"lang": "pcm_NG"},
-#             status=200, content_type='application/json',
-#         )
-
-#         # Execute
-#         result = implement_action.apply_async(args=[change.id])
-
-#         # Check
-#         self.assertEqual(result.get(), "Change language completed")
-#         assert len(responses.calls) == 4
+        # Check
+        self.assertEqual(result.get(), "Change language completed")
+        assert len(responses.calls) == 2
 
 
 # class TestChangeUnsubscribe(AuthenticatedAPITestCase):

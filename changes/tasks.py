@@ -86,21 +86,12 @@ class ImplementAction(Task):
         return "Change loss completed"
 
     def change_language(self, change):
-        # Get mother's current subscriptions
+        # Get current subscriptions
         subscriptions = utils.get_subscriptions(change.mother_id)
         # Patch subscriptions languages
         for subscription in subscriptions:
             utils.patch_subscription(
                 subscription, {"lang": change.data["new_language"]})
-
-        if change.data["household_id"]:
-            # Get household's current subscriptions
-            subscriptions = utils.get_subscriptions(
-                change.data["household_id"])
-            # Patch subscriptions languages
-            for subscription in subscriptions:
-                utils.patch_subscription(
-                    subscription, {"lang": change.data["new_language"]})
 
         return "Change language completed"
 
