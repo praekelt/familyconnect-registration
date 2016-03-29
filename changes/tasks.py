@@ -18,7 +18,6 @@ class ImplementAction(Task):
             utils.deactivate_subscription(subscription)
         # Get mother's identity
         mother = utils.get_identity(change.mother_id)
-
         # Get mother's registration
         registration = Registration.objects.get(mother_id=change.mother_id)
 
@@ -43,45 +42,33 @@ class ImplementAction(Task):
         return "Change baby completed"
 
     def change_loss(self, change):
-        # Get mother's current subscriptions
+        # Get current subscriptions
         subscriptions = utils.get_subscriptions(change.mother_id)
         # Deactivate subscriptions
         for subscription in subscriptions:
             utils.deactivate_subscription(subscription)
         # Get mother's identity
         mother = utils.get_identity(change.mother_id)
+        # Get mother's registration
+        registration = Registration.objects.get(mother_id=change.mother_id)
 
-        stage = 'miscarriage'
-        weeks = 0
-        voice_days = mother["details"]["preferred_msg_days"]
-        voice_times = mother["details"]["preferred_msg_times"]
+        short_name = utils.get_messageset_short_name(
+            registration.data["msg_receiver"],
+            'loss',
+            registration.source.authority)
 
-        mother_short_name = utils.get_messageset_short_name(
-            stage, 'mother', mother["details"]["preferred_msg_type"],
-            weeks, voice_days, voice_times)
-
-        mother_msgset_id, mother_msgset_schedule, next_sequence_number =\
-            utils.get_messageset_schedule_sequence(mother_short_name, weeks)
+        msgset_id, msgset_schedule, next_sequence_number =\
+            utils.get_messageset_schedule_sequence(short_name, 0)
 
         # Make new subscription request object
         mother_sub = {
             "contact": change.mother_id,
-            "messageset": mother_msgset_id,
+            "messageset": msgset_id,
             "next_sequence_number": next_sequence_number,
             "lang": mother["details"]["preferred_language"],
-            "schedule": mother_msgset_schedule
+            "schedule": msgset_schedule
         }
         SubscriptionRequest.objects.create(**mother_sub)
-
-        # Get mother's registration
-        registration = Registration.objects.get(mother_id=change.mother_id)
-        if registration.data["msg_receiver"] != 'mother_only':
-            # Get household's current subscriptions
-            subscriptions = utils.get_subscriptions(
-                mother["details"]["linked_to"])
-            # Deactivate subscriptions
-            for subscription in subscriptions:
-                utils.deactivate_subscription(subscription)
 
         return "Change loss completed"
 
