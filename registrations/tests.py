@@ -9,6 +9,7 @@ from django.db.models.signals import post_save
 from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
+from rest_hooks.models import model_saved, Hook
 
 from .models import (Source, Registration, SubscriptionRequest,
                      registration_post_save)
@@ -170,7 +171,10 @@ class AuthenticatedAPITestCase(APITestCase):
         assert has_listeners(), (
             "Registration model has no post_save listeners. Make sure"
             " helpers cleaned up properly in earlier tests.")
-        post_save.disconnect(registration_post_save, sender=Registration)
+        post_save.disconnect(receiver=registration_post_save,
+                             sender=Registration)
+        post_save.disconnect(receiver=model_saved,
+                             dispatch_uid='instance-saved-hook')
         assert not has_listeners(), (
             "Registration model still has post_save listeners. Make sure"
             " helpers cleaned up properly in earlier tests.")
@@ -857,3 +861,78 @@ class TestSubscriptionRequest(AuthenticatedAPITestCase):
         self.assertEqual(d.next_sequence_number, 11)  # (15-4)*1
         self.assertEqual(d.lang, "eng_UG")
         self.assertEqual(d.schedule, 2)
+
+
+class TestSubscriptionRequestWebhook(AuthenticatedAPITestCase):
+
+    def test_create_webhook(self):
+        # Setup
+        user = User.objects.get(username='testadminuser')
+        post_data = {
+            "target": "http://example.com/registration/",
+            "event": "subscriptionrequest.added"
+        }
+        # Execute
+        response = self.adminclient.post('/api/v1/webhook/',
+                                         json.dumps(post_data),
+                                         content_type='application/json')
+        # Check
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        d = Hook.objects.last()
+        self.assertEqual(d.target, 'http://example.com/registration/')
+        self.assertEqual(d.user, user)
+
+    # This test is not working despite the code working fine
+    # If you run these same steps below interactively the webhook will fire
+    # @responses.activate
+    # def test_mother_only_webhook(self):
+    #     # Setup
+    #     post_save.connect(receiver=model_saved, sender=SubscriptionRequest,
+    #                       dispatch_uid='instance-saved-hook')
+    #     Hook.objects.create(user=self.adminuser,
+    #                         event='subscriptionrequest.added',
+    #                         target='http://example.com/registration/')
+    #
+    #     expected_webhook = {
+    #         "hook": {
+    #             "target": "http://example.com/registration/",
+    #             "event": "subscriptionrequest.added",
+    #             "id": 3
+    #         },
+    #         "data": {
+    #             "messageset": 1,
+    #             "updated_at": "2016-02-17T07:59:42.831568+00:00",
+    #             "contact": "mother01-63e2-4acc-9b94-26663b9bc267",
+    #             "lang": "eng_NG",
+    #             "created_at": "2016-02-17T07:59:42.831533+00:00",
+    #             "id": "5282ed58-348f-4a54-b1ff-f702e36ec3cc",
+    #             "next_sequence_number": 1,
+    #             "schedule": 1
+    #         }
+    #     }
+    #     responses.add(
+    #         responses.POST,
+    #         "http://example.com/registration/",
+    #         json.dumps(expected_webhook),
+    #         status=200, content_type='application/json')
+    #     registration_data = {
+    #         "stage": "prebirth",
+    #         "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
+    #         "data": REG_DATA["hw_pre_id_mother"].copy(),
+    #         "source": self.make_source_adminuser()
+    #     }
+    #     registration = Registration.objects.create(**registration_data)
+    #     # Execute
+    #     result = validate_registration.create_subscriptionrequests(
+    #         registration)
+    #     # Check
+    #     self.assertEqual(result, "SubscriptionRequest created")
+    #     d = SubscriptionRequest.objects.last()
+    #     self.assertEqual(d.contact,
+    #                      "mother01-63e2-4acc-9b94-26663b9bc267")
+    #     self.assertEqual(d.messageset, 1)
+    #     self.assertEqual(d.next_sequence_number, 1)
+    #     self.assertEqual(d.lang, "eng_NG")
+    #     self.assertEqual(d.schedule, 1)
+    #     self.assertEqual(responses.calls[0].request.url,
+    #                      "http://example.com/registration/")

@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User, Group
 from .models import Source, Registration
 from rest_framework import serializers
+from rest_hooks.models import Hook
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
@@ -32,3 +33,10 @@ class RegistrationSerializer(serializers.ModelSerializer):
                             'created_at', 'updated_at')
         fields = ('id', 'stage', 'mother_id', 'validated', 'data', 'source',
                   'created_at', 'updated_at', 'created_by', 'updated_by')
+
+
+class HookSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Hook
+        read_only_fields = ('user',)
