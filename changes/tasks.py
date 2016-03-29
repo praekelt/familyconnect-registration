@@ -96,7 +96,7 @@ class ImplementAction(Task):
         return "Change language completed"
 
     def unsubscribe(self, change):
-        # Get mother's current subscriptions
+        # Get current subscriptions
         subscriptions = utils.get_subscriptions(
             change.mother_id)
         # Deactivate subscriptions
