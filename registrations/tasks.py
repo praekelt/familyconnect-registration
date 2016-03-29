@@ -4,14 +4,11 @@ import six  # for Python 2 and 3 string type compatibility
 from celery.task import Task
 from celery.utils.log import get_task_logger
 
-from .models import Registration
+from .models import Registration, SubscriptionRequest
+from familyconnect_registration import utils
 
 
 logger = get_task_logger(__name__)
-
-
-def get_today():
-    return datetime.today()
 
 
 def is_valid_date(date):
@@ -27,11 +24,11 @@ def is_valid_uuid(id):
 
 
 def is_valid_lang(lang):
-    return lang in ["english", "runyakore", "lusoga"]
+    return lang in ["eng_UG", "cgg_UG", "xog_UG", "lug_UG"]
 
 
 def is_valid_msg_type(msg_type):
-    return msg_type in ["sms"]  # currently sms-only
+    return msg_type in ["text"]  # currently text only
 
 
 def is_valid_msg_receiver(msg_receiver):
@@ -53,18 +50,6 @@ def is_valid_id_type(id_type):
 
 def is_valid_id_no(id_no):
     return isinstance(id_no, six.string_types)  # TODO proper id validation
-
-
-def calc_pregnancy_week_lmp(today, lmp):
-    """ Calculate how far along the mother's prenancy is in weeks.
-    """
-    last_period_date = datetime.datetime.strptime(lmp, "%Y%m%d")
-    time_diff = today - last_period_date
-    preg_weeks = int(time_diff.days / 7)
-    # You can't be one week pregnant (smaller numbers will be rejected)
-    if preg_weeks == 1:
-        preg_weeks = 2
-    return preg_weeks
 
 
 class ValidateRegistration(Task):
@@ -96,8 +81,8 @@ class ValidateRegistration(Task):
                         failures.append("mama_dob requires id_type other")
                     # Check last_period_date is in the past and < 42 weeks ago
                     if field == "last_period_date":
-                        preg_weeks = calc_pregnancy_week_lmp(
-                            get_today(), registration_data[field])
+                        preg_weeks = utils.calc_pregnancy_week_lmp(
+                            utils.get_today(), registration_data[field])
                         if not (2 <= preg_weeks <= 42):
                             failures.append("last_period_date out of range")
             if field == "msg_receiver":
@@ -189,8 +174,8 @@ class ValidateRegistration(Task):
                 hw_pre_id, registration.data)
             if invalid_fields == []:
                 registration.data["reg_type"] = "hw_pre_id"
-                registration.data["preg_week"] = calc_pregnancy_week_lmp(
-                    get_today(), registration.data["last_period_date"])
+                registration.data["preg_week"] = utils.calc_pregnancy_week_lmp(
+                    utils.get_today(), registration.data["last_period_date"])
                 registration.validated = True
                 registration.save()
                 return True
@@ -206,8 +191,8 @@ class ValidateRegistration(Task):
                 hw_pre_dob, registration.data)
             if invalid_fields == []:
                 registration.data["reg_type"] = "hw_pre_dob"
-                registration.data["preg_week"] = calc_pregnancy_week_lmp(
-                    get_today(), registration.data["last_period_date"])
+                registration.data["preg_week"] = utils.calc_pregnancy_week_lmp(
+                    utils.get_today(), registration.data["last_period_date"])
                 registration.validated = True
                 registration.save()
                 return True
@@ -223,8 +208,8 @@ class ValidateRegistration(Task):
                 pbl_pre, registration.data)
             if invalid_fields == []:
                 registration.data["reg_type"] = "pbl_pre"
-                registration.data["preg_week"] = calc_pregnancy_week_lmp(
-                    get_today(), registration.data["last_period_date"])
+                registration.data["preg_week"] = utils.calc_pregnancy_week_lmp(
+                    utils.get_today(), registration.data["last_period_date"])
                 registration.validated = True
                 registration.save()
                 return True
@@ -253,6 +238,36 @@ class ValidateRegistration(Task):
             registration.save()
             return False
 
+    def create_subscriptionrequests(self, registration):
+        """ Create SubscriptionRequest(s) based on the
+        validated registration.
+        """
+
+        if 'preg_week' in registration.data:
+            weeks = registration.data["preg_week"]
+        else:
+            weeks = registration.data["baby_age"]
+
+        short_name = utils.get_messageset_short_name(
+            registration.data["msg_receiver"], registration.stage,
+            registration.source.authority
+        )
+
+        msgset_id, msgset_schedule, next_sequence_number =\
+            utils.get_messageset_schedule_sequence(
+                short_name, weeks)
+
+        mother_sub = {
+            "contact": registration.mother_id,
+            "messageset": msgset_id,
+            "next_sequence_number": next_sequence_number,
+            "lang": registration.data["language"],
+            "schedule": msgset_schedule
+        }
+        SubscriptionRequest.objects.create(**mother_sub)
+
+        return "SubscriptionRequest created"
+
     def run(self, registration_id, **kwargs):
         """ Sets the registration's validated field to True if
         validation is successful.
@@ -260,11 +275,12 @@ class ValidateRegistration(Task):
         l = self.get_logger(**kwargs)
         l.info("Looking up the registration")
         registration = Registration.objects.get(id=registration_id)
-
         reg_validates = self.validate(registration)
+
         validation_string = "Validation completed - "
         if reg_validates:
             validation_string += "Success"
+            self.create_subscriptionrequests(registration)
         else:
             validation_string += "Failure"
 

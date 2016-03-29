@@ -1,6 +1,7 @@
 ﻿import json
 import uuid
 import datetime
+import responses
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -9,13 +10,14 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
 
-from .models import Source, Registration, registration_post_save
+from .models import (Source, Registration, SubscriptionRequest,
+                     registration_post_save)
 from .tasks import (
     validate_registration,
     is_valid_date, is_valid_uuid, is_valid_lang, is_valid_msg_type,
     is_valid_msg_receiver, is_valid_loss_reason, is_valid_name,
     is_valid_id_type, is_valid_id_no)
-from registrations import tasks
+from familyconnect_registration import utils
 
 
 def override_get_today():
@@ -34,8 +36,8 @@ REG_DATA = {
         "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
         "receiver_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
         "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
-        "language": "english",
-        "msg_type": "sms",
+        "language": "eng_UG",
+        "msg_type": "text",
         "last_period_date": "20150202",
         "msg_receiver": "head_of_household",
         "hoh_name": "bob",
@@ -49,9 +51,9 @@ REG_DATA = {
         "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
         "receiver_id": "mother01-63e2-4acc-9b94-26663b9bc267",
         "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
-        "language": "english",
-        "msg_type": "sms",
-        "last_period_date": "20150202",
+        "language": "eng_UG",
+        "msg_type": "text",
+        "last_period_date": "20150202",  # 28 weeks pregnant
         "msg_receiver": "mother_to_be",
         "hoh_name": "bob",
         "hoh_surname": "the builder",
@@ -64,8 +66,8 @@ REG_DATA = {
         "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
         "receiver_id": "friend01-63e2-4acc-9b94-26663b9bc267",
         "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
-        "language": "english",
-        "msg_type": "sms",
+        "language": "eng_UG",
+        "msg_type": "text",
         "last_period_date": "20150202",
         "msg_receiver": "family_member",
         "hoh_name": "bob",
@@ -79,8 +81,8 @@ REG_DATA = {
         "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
         "receiver_id": "friend01-63e2-4acc-9b94-26663b9bc267",
         "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
-        "language": "english",
-        "msg_type": "sms",
+        "language": "eng_UG",
+        "msg_type": "text",
         "last_period_date": "20150202",
         "msg_receiver": "trusted_friend",
         "hoh_name": "bob",
@@ -94,8 +96,8 @@ REG_DATA = {
         "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
         "receiver_id": "friend01-63e2-4acc-9b94-26663b9bc267",
         "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
-        "language": "english",
-        "msg_type": "sms",
+        "language": "eng_UG",
+        "msg_type": "text",
         "last_period_date": "20150202",
         "msg_receiver": "trusted_friend"
     },
@@ -103,16 +105,16 @@ REG_DATA = {
         "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
         "receiver_id": "friend01-63e2-4acc-9b94-26663b9bc267",
         "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
-        "language": "english",
-        "msg_type": "sms",
+        "language": "eng_UG",
+        "msg_type": "text",
         "loss_reason": "miscarriage"
     },
     "bad_data_combination": {
         "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
         "receiver_id": "friend01-63e2-4acc-9b94-26663b9bc267",
         "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
-        "language": "english",
-        "msg_type": "sms",
+        "language": "eng_UG",
+        "msg_type": "text",
         "last_period_date": "20150202",
         "msg_receiver": "trusted_friend",
         "hoh_name": "bob",
@@ -122,8 +124,8 @@ REG_DATA = {
         "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
         "receiver_id": "friend01-63e2-4acc-9b94-26663b9bc267",
         "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
-        "language": "english",
-        "msg_type": "sms",
+        "language": "eng_UG",
+        "msg_type": "text",
         "last_period_date": "2015020",
         "msg_receiver": "trusted friend",
         "hoh_name": "bob",
@@ -137,8 +139,8 @@ REG_DATA = {
         "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
         "receiver_id": "friend01-63e2-4acc-9b94-26663b9bc267",
         "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
-        "language": "english",
-        "msg_type": "sms",
+        "language": "eng_UG",
+        "msg_type": "text",
         "last_period_date": "20140202",
         "msg_receiver": "trusted_friend",
         "hoh_name": "bob",
@@ -157,7 +159,7 @@ class APITestCase(TestCase):
         self.adminclient = APIClient()
         self.normalclient = APIClient()
         self.otherclient = APIClient()
-        tasks.get_today = override_get_today
+        utils.get_today = override_get_today
 
 
 class AuthenticatedAPITestCase(APITestCase):
@@ -491,8 +493,8 @@ class TestFieldValidation(AuthenticatedAPITestCase):
 
     def test_is_valid_lang(self):
         # Setup
-        valid_lang = "runyakore"
-        invalid_lang = "french"
+        valid_lang = "lug_UG"
+        invalid_lang = "lusoga"
         # Execute
         # Check
         self.assertEqual(is_valid_lang(valid_lang), True)
@@ -500,7 +502,7 @@ class TestFieldValidation(AuthenticatedAPITestCase):
 
     def test_is_valid_msg_type(self):
         # Setup
-        valid_msg_type = "sms"
+        valid_msg_type = "text"
         invalid_msg_type = "voice"
         # Execute
         # Check
@@ -707,6 +709,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         self.assertEqual(v, False)
         self.assertEqual(registration.validated, False)
 
+    @responses.activate
     def test_validate_registration_run_success(self):
         # Setup
         registration_data = {
@@ -716,10 +719,41 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
             "source": self.make_source_adminuser()
         }
         registration = Registration.objects.create(**registration_data)
+        # mock messageset lookup
+        query_string = '?short_name=prebirth.mother.hw_full'
+        responses.add(
+            responses.GET,
+            'http://localhost:8005/api/v1/messageset/%s' % query_string,
+            json={
+                "count": 1,
+                "next": None,
+                "previous": None,
+                "results": [{
+                    "id": 1,
+                    "short_name": 'prebirth.mother.hw_full',
+                    "default_schedule": 1
+                }]
+            },
+            status=200, content_type='application/json',
+            match_querystring=True
+        )
+        # mock schedule lookup
+        responses.add(
+            responses.GET,
+            'http://localhost:8005/api/v1/schedule/1/',
+            json={"id": 1, "day_of_week": "1,4"},
+            status=200, content_type='application/json',
+        )
         # Execute
         result = validate_registration.apply_async(args=[registration.id])
         # Check
         self.assertEqual(result.get(), "Validation completed - Success")
+        d = SubscriptionRequest.objects.last()
+        self.assertEqual(d.contact, "mother01-63e2-4acc-9b94-26663b9bc267")
+        self.assertEqual(d.messageset, 1)
+        self.assertEqual(d.next_sequence_number, 48)  # (28-4)*2
+        self.assertEqual(d.lang, "eng_UG")
+        self.assertEqual(d.schedule, 1)
 
     def test_validate_registration_run_failure_bad_combination(self):
         # Setup
@@ -771,3 +805,55 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         d = Registration.objects.get(id=registration.id)
         self.assertEqual(d.data["invalid_fields"],
                          ["last_period_date out of range"])
+
+
+class TestSubscriptionRequest(AuthenticatedAPITestCase):
+
+    @responses.activate
+    def test_hoh_prebirth_patient(self):
+        # Setup
+        # prepare registration data
+        registration_data = {
+            "stage": "prebirth",
+            "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
+            "data": REG_DATA["hw_pre_id_hoh"].copy(),
+            "source": self.make_source_normaluser()
+        }
+        registration_data["data"]["preg_week"] = 15
+        registration = Registration.objects.create(**registration_data)
+        # mock messageset lookup
+        query_string = '?short_name=prebirth.household.patient'
+        responses.add(
+            responses.GET,
+            'http://localhost:8005/api/v1/messageset/%s' % query_string,
+            json={
+                "count": 1,
+                "next": None,
+                "previous": None,
+                "results": [{
+                    "id": 2,
+                    "short_name": 'prebirth.household.patient',
+                    "default_schedule": 2
+                }]
+            },
+            status=200, content_type='application/json',
+            match_querystring=True
+        )
+        # mock schedule lookup
+        responses.add(
+            responses.GET,
+            'http://localhost:8005/api/v1/schedule/2/',
+            json={"id": 2, "day_of_week": "1"},
+            status=200, content_type='application/json',
+        )
+        # Execute
+        result = validate_registration.create_subscriptionrequests(
+            registration)
+        # Check
+        self.assertEqual(result, "SubscriptionRequest created")
+        d = SubscriptionRequest.objects.last()
+        self.assertEqual(d.contact, "mother01-63e2-4acc-9b94-26663b9bc267")
+        self.assertEqual(d.messageset, 2)
+        self.assertEqual(d.next_sequence_number, 11)  # (15-4)*1
+        self.assertEqual(d.lang, "eng_UG")
+        self.assertEqual(d.schedule, 2)
