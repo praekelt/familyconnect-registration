@@ -161,8 +161,6 @@ class ValidateRegistration(Task):
                     registration.data["hoh_id"] or (
                     registration.data["receiver_id"] ==
                     registration.mother_id))):
-                print(registration.mother_id)
-                print(registration.data)
                 registration.data["invalid_fields"] = "receiver_id should" \
                     "differ from hoh_id and mother_id"
                 registration.save()
