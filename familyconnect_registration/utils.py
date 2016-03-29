@@ -53,7 +53,6 @@ def get_schedule(schedule_id):
 def get_subscriptions(identity):
     """ Gets the active subscriptions found for an identity
     """
-    print(identity)
     url = settings.STAGE_BASED_MESSAGING_URL + 'subscriptions/'
     params = {'id': identity, 'active': True}
     headers = {'Authorization': [
