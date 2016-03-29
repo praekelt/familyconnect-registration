@@ -5,8 +5,10 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils.encoding import python_2_unicode_compatible
 
 
+@python_2_unicode_compatible
 class Source(models.Model):
     """ The source from which a registation originates.
         The User foreignkey is used to identify the source based on the
@@ -25,10 +27,11 @@ class Source(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def __unicode__(self):
-        return u"%s" % self.name
+    def __str__(self):
+        return "%s" % self.name
 
 
+@python_2_unicode_compatible
 class Registration(models.Model):
     """ A registation submitted via Vumi or other sources.
 
@@ -53,6 +56,7 @@ class Registration(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     stage = models.CharField(max_length=30, null=False, blank=False,
                              choices=STAGE_CHOICES)
+    mother_id = models.CharField(max_length=36, null=False, blank=False)
     data = JSONField(null=True, blank=True)
     validated = models.BooleanField(default=False)
     source = models.ForeignKey(Source, related_name='registrations',
@@ -65,7 +69,7 @@ class Registration(models.Model):
                                    null=True)
     user = property(lambda self: self.created_by)
 
-    def __str__(self):  # __unicode__ on Python 2
+    def __str__(self):
         return str(self.id)
 
 
