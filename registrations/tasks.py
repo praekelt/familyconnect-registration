@@ -114,13 +114,13 @@ class ValidateRegistration(Task):
         prebirth registration.
         """
         data_fields = registration.data.keys()
-        fields_general = ["hoh_id", "receiver_id", "operator_id", "language",
+        fields_general = ["hoh_id", "receiver_id", "language",
                           "msg_type"]
         fields_prebirth = ["last_period_date", "msg_receiver"]
         fields_loss = ["loss_reason"]
-        fields_hw_id = ["hoh_name", "hoh_surname", "mama_name", "mama_surname",
-                        "mama_id_type", "mama_id_no"]
-        fields_hw_dob = ["hoh_name", "hoh_surname", "mama_name",
+        fields_hw_id = ["operator_id", "hoh_name", "hoh_surname", "mama_name",
+                        "mama_surname", "mama_id_type", "mama_id_no"]
+        fields_hw_dob = ["operator_id", "hoh_name", "hoh_surname", "mama_name",
                          "mama_surname", "mama_id_type", "mama_dob"]
 
         # Perhaps the below should rather be hardcoded to save a tiny bit of

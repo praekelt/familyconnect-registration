@@ -96,7 +96,7 @@ REG_DATA = {
     "pbl_pre": {
         "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
         "receiver_id": "friend01-63e2-4acc-9b94-26663b9bc267",
-        "operator_id": "hcw00001-63e2-4acc-9b94-26663b9bc267",
+        "operator_id": None,
         "language": "eng_UG",
         "msg_type": "text",
         "last_period_date": "20150202",
