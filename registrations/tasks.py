@@ -246,6 +246,7 @@ class ValidateRegistration(Task):
         validated registration.
         """
 
+        # Create subscription
         if 'preg_week' in registration.data:
             weeks = registration.data["preg_week"]
         else:
@@ -268,6 +269,38 @@ class ValidateRegistration(Task):
             "schedule": msgset_schedule
         }
         SubscriptionRequest.objects.create(**mother_sub)
+
+        # Send registration welcome SMS
+        if registration.data["msg_receiver"] == "mother_to_be":
+            if "hw" in registration.source.authority:
+                sms = settings.MOTHER_HW_WELCOME_TEXT_UG_ENG
+            else:
+                sms = settings.MOTHER_PUBLIC_WELCOME_TEXT_UG_ENG
+
+            # Insert the mother's name in the SMS
+            sms = sms.replace(
+                '[mother_first_name]', registration.data["mama_name"])
+        else:
+            if "hw" in registration.source.authority:
+                sms = settings.HOUSEHOLD_HW_WELCOME_TEXT_UG_ENG
+            else:
+                sms = settings.HOUSEHOLD_PUBLIC_WELCOME_TEXT_UG_ENG
+        # Insert the mother's health_id in the SMS
+        mother = utils.get_identity(registration.mother_id)
+        if mother["details"]["health_id"]:
+            sms = sms.replace(
+                '[health_id]', str(mother["details"]["health_id"]))
+        else:
+            # TODO: #13
+            pass
+
+        payload = {
+            "to_addr": utils.get_identity_address(
+                registration.data["receiver_id"]),
+            "content": sms,
+            "metadata": {}
+        }
+        utils.post_message(payload)
 
         return "SubscriptionRequest created"
 
