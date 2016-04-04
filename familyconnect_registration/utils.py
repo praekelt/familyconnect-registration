@@ -21,7 +21,7 @@ def calc_pregnancy_week_lmp(today, lmp):
 
 
 def get_identity(identity):
-    url = settings.IDENTITY_STORE_URL + 'identities/%s/' % str(identity)
+    url = "%s/%s/%s/" % (settings.IDENTITY_STORE_URL, "identities", identity)
     headers = {'Authorization': ['Token %s' % settings.IDENTITY_STORE_TOKEN],
                'Content-Type': ['application/json']}
     r = requests.get(url, headers=headers)
@@ -29,7 +29,7 @@ def get_identity(identity):
 
 
 def get_messageset(short_name):
-    url = settings.STAGE_BASED_MESSAGING_URL + 'messageset/'
+    url = "%s/%s/" % (settings.STAGE_BASED_MESSAGING_URL, "messageset")
     params = {'short_name': short_name}
     headers = {'Authorization': [
         'Token %s' % settings.STAGE_BASED_MESSAGING_TOKEN],
@@ -40,8 +40,8 @@ def get_messageset(short_name):
 
 
 def get_schedule(schedule_id):
-    url = settings.STAGE_BASED_MESSAGING_URL + 'schedule/%s/' % str(
-        schedule_id)
+    url = "%s/%s/%s/" % (settings.STAGE_BASED_MESSAGING_URL,
+                         "schedule", schedule_id)
     headers = {'Authorization': [
         'Token %s' % settings.STAGE_BASED_MESSAGING_TOKEN],
         'Content-Type': ['application/json']
@@ -51,9 +51,9 @@ def get_schedule(schedule_id):
 
 
 def get_subscriptions(identity):
-    """ Gets the active subscriptions found for an identity
+    """ Gets the first active subscription found for an identity
     """
-    url = settings.STAGE_BASED_MESSAGING_URL + 'subscriptions/'
+    url = "%s/%s/" % (settings.STAGE_BASED_MESSAGING_URL, "subscriptions")
     params = {'id': identity, 'active': True}
     headers = {'Authorization': [
         'Token %s' % settings.STAGE_BASED_MESSAGING_TOKEN],
@@ -66,8 +66,8 @@ def get_subscriptions(identity):
 def patch_subscription(subscription, data):
     """ Patches the given subscription with the data provided
     """
-    url = settings.STAGE_BASED_MESSAGING_URL + 'subscriptions/%s/' % (
-        subscription["id"])
+    url = "%s/%s/%s/" % (settings.STAGE_BASED_MESSAGING_URL,
+                         "subscriptions", subscription["id"])
     data = data
     headers = {'Authorization': [
         'Token %s' % settings.STAGE_BASED_MESSAGING_TOKEN],

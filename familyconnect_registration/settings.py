@@ -188,10 +188,10 @@ djcelery.setup_loader()
 PREBIRTH_MIN_WEEKS = int(os.environ.get('PREBIRTH_MIN_WEEKS', '4'))
 
 STAGE_BASED_MESSAGING_URL = os.environ.get('STAGE_BASED_MESSAGING_URL',
-                                           'http://localhost:8005/api/v1/')
+                                           'http://localhost:8005/api/v1')
 STAGE_BASED_MESSAGING_TOKEN = os.environ.get('STAGE_BASED_MESSAGING_TOKEN',
                                              'REPLACEME')
 IDENTITY_STORE_URL = os.environ.get('IDENTITY_STORE_URL',
-                                    'http://localhost:8001/api/v1/')
+                                    'http://localhost:8001/api/v1')
 IDENTITY_STORE_TOKEN = os.environ.get('IDENTITY_STORE_TOKEN',
                                       'REPLACEME')
