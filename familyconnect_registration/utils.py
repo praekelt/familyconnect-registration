@@ -1,5 +1,6 @@
 import datetime
 import requests
+import json
 
 from django.conf import settings
 
@@ -126,3 +127,16 @@ def get_messageset_schedule_sequence(short_name, weeks):
             next_sequence_number = 1  # next_sequence_number cannot be 0
 
     return (messageset_id, schedule_id, next_sequence_number)
+
+
+def post_message(payload):
+    result = requests.post(
+        url="%s/outbound/" % settings.MESSAGE_SENDER_URL,
+        data=json.dumps(payload),
+        headers={
+            'Content-Type': 'application/json',
+            'Authorization': 'Token %s' % (
+                settings.MESSAGE_SENDER_TOKEN,)
+        }
+    ).json()
+    return result
