@@ -748,6 +748,45 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
             json={"id": 1, "day_of_week": "1,4"},
             status=200, content_type='application/json',
         )
+        # mock mother identity lookup
+        responses.add(
+            responses.GET,
+            'http://localhost:8001/api/v1/identities/%s/' % registration_data[
+                "mother_id"],
+            json={
+                "id": registration_data["mother_id"],
+                "version": 1,
+                "details": {
+                    "default_addr_type": "msisdn",
+                    "addresses": {
+                        "msisdn": {}
+                    },
+                    "receiver_role": "mother_to_be",
+                    "health_id": 9999999999
+                },
+                "created_at": "2015-07-10T06:13:29.693272Z",
+                "updated_at": "2015-07-10T06:13:29.693298Z"
+            },
+            status=200, content_type='application/json'
+        )
+        # mock Mother MSISDN lookup
+        responses.add(
+            responses.GET,
+            'http://localhost:8001/api/v1/identities/mother01-63e2-4acc-9b94-26663b9bc267/addresses/msisdn?default=True',  # noqa
+            json={
+                "count": 1, "next": None, "previous": None,
+                "results": [{"address": "+256123"}]
+            },
+            status=200, content_type='application/json',
+            match_querystring=True
+        )
+        # mock SMS send
+        responses.add(
+            responses.POST,
+            'http://localhost:8006/api/v1/outbound/',
+            json={"id": 1},
+            status=200, content_type='application/json',
+        )
         # Execute
         result = validate_registration.apply_async(args=[registration.id])
         # Check
@@ -850,6 +889,47 @@ class TestSubscriptionRequest(AuthenticatedAPITestCase):
             json={"id": 2, "day_of_week": "1"},
             status=200, content_type='application/json',
         )
+
+        # mock mother identity lookup
+        responses.add(
+            responses.GET,
+            'http://localhost:8001/api/v1/identities/%s/' % registration_data[
+                "mother_id"],
+            json={
+                "id": registration_data["mother_id"],
+                "version": 1,
+                "details": {
+                    "default_addr_type": "msisdn",
+                    "addresses": {
+                        "msisdn": {}
+                    },
+                    "receiver_role": "mother_to_be",
+                    "health_id": 7777777777
+                },
+                "created_at": "2015-07-10T06:13:29.693272Z",
+                "updated_at": "2015-07-10T06:13:29.693298Z"
+            },
+            status=200, content_type='application/json'
+        )
+        # mock HOH MSISDN lookup
+        responses.add(
+            responses.GET,
+            'http://localhost:8001/api/v1/identities/hoh00001-63e2-4acc-9b94-26663b9bc267/addresses/msisdn?default=True',  # noqa
+            json={
+                "count": 1, "next": None, "previous": None,
+                "results": [{"address": "+256124"}]
+            },
+            status=200, content_type='application/json',
+            match_querystring=True
+        )
+        # mock SMS send
+        responses.add(
+            responses.POST,
+            'http://localhost:8006/api/v1/outbound/',
+            json={"id": 1},
+            status=200, content_type='application/json',
+        )
+
         # Execute
         result = validate_registration.create_subscriptionrequests(
             registration)

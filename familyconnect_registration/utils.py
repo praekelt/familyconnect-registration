@@ -29,6 +29,20 @@ def get_identity(identity):
     return r.json()
 
 
+def get_identity_address(identity):
+    url = "%s/%s/%s/addresses/msisdn" % (settings.IDENTITY_STORE_URL,
+                                         "identities", identity)
+    params = {"default": True}
+    headers = {'Authorization': ['Token %s' % (
+        settings.IDENTITY_STORE_TOKEN, )],
+        'Content-Type': ['application/json']}
+    r = requests.get(url, params=params, headers=headers).json()
+    if len(r["results"]) > 0:
+        return r["results"][0]
+    else:
+        return None
+
+
 def get_messageset(short_name):
     url = "%s/%s/" % (settings.STAGE_BASED_MESSAGING_URL, "messageset")
     params = {'short_name': short_name}
