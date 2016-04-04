@@ -532,7 +532,7 @@ class TestChangeUnsubscribe(AuthenticatedAPITestCase):
             "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
             "action": "unsubscribe",
             "data": {
-                "loss_reason": "miscarriage"
+                "reason": "miscarriage"
             },
             "source": self.make_source_adminuser()
         }
@@ -584,7 +584,7 @@ class TestChangeLoss(AuthenticatedAPITestCase):
         change_data = {
             "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
             "action": "change_loss",
-            "data": {"loss_reason": "stillborn"},
+            "data": {"reason": "stillborn"},
             "source": self.make_source_adminuser()
         }
         change = Change.objects.create(**change_data)
