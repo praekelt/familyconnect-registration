@@ -291,10 +291,8 @@ class ValidateRegistration(Task):
             sms = sms.replace(
                 '[health_id]', str(mother["details"]["health_id"]))
         else:
-            # TODO: raise exception?
+            # TODO: #13
             pass
-
-        print(sms)
 
         payload = {
             "to_addr": utils.get_identity_address(
