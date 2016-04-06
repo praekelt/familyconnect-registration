@@ -72,13 +72,60 @@ class TestRecordCreation(AuthenticatedAPITestCase):
         data = {
             "identity": "9d02ae1a-16e4-4674-abdc-daf9cce9c52d"
         }
-        first = Record.objects.create(**data)
+        Record.objects.create(**data)
         data2 = {
             "identity": "c304f463-6db4-4f89-a095-46319da06ac9"
         }
         # Execute
         Record.objects.create(**data2)
         # Check
+        self.assertEqual(Record.objects.all().count(), 2)
+
+
+class TestRecordAPI(AuthenticatedAPITestCase):
+
+    def test_webook_api_create_unique_ten_digit(self):
+        # Setup
+        post_webhook = {
+            "hook": {
+                "id": 2,
+                "event": "identity.added",
+                "target": "http://example.com/api/v1/uniqueid/"
+            },
+            "data": {
+                "identity": "9d02ae1a-16e4-4674-abdc-daf9cce9c52d"
+            }
+        }
+        # Execute
+        response = self.normalclient.post('/api/v1/uniqueid/',
+                                          json.dumps(post_webhook),
+                                          content_type='application/json')
+        # Check
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
         d = Record.objects.last()
         self.assertIsNotNone(d.id)
-        self.assertNotEqual(d.id, first.id)
+        self.assertEqual(len(str(d.id)), 10)
+        self.assertEqual(str(d.identity),
+                         "9d02ae1a-16e4-4674-abdc-daf9cce9c52d")
+
+    def test_webook_api_missing_identity(self):
+        # Setup
+        post_webhook = {
+            "hook": {
+                "id": 2,
+                "event": "identity.added",
+                "target": "http://example.com/api/v1/uniqueid/"
+            },
+            "data": {
+                "frank": "bob"
+            }
+        }
+        # Execute
+        response = self.normalclient.post('/api/v1/uniqueid/',
+                                          json.dumps(post_webhook),
+                                          content_type='application/json')
+        # Check
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json(), {'identity': [
+            'This field is required.']})

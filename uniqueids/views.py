@@ -1,18 +1,26 @@
-from .models import Record
-from rest_framework import mixins, generics
 from rest_framework.permissions import IsAuthenticated
-from .serializers import RecordSerializer
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .models import Record
 
 
-class RecordPost(mixins.CreateModelMixin, generics.GenericAPIView):
+class RecordPost(APIView):
+
+    """ Webhook listener for identities needing a unique ID
+    """
     permission_classes = (IsAuthenticated,)
-    queryset = Record.objects.all()
-    serializer_class = RecordSerializer
 
-    # TODO make this work in test harness, works in production
-    # def perform_create(self, serializer):
-    #     serializer.save(created_by=self.request.user,
-    #                     updated_by=self.request.user)
-
-    # def perform_update(self, serializer):
-    #     serializer.save(updated_by=self.request.user)
+    def post(self, request, *args, **kwargs):
+        """ Accepts and creates a new unique ID record
+        """
+        if "identity" in request.data["data"]:
+            Record.objects.create(**request.data["data"])
+            # Return
+            status = 201
+            accepted = {"accepted": True}
+            return Response(accepted, status=status)
+        else:
+            # Return
+            status = 400
+            accepted = {"identity": ['This field is required.']}
+            return Response(accepted, status=status)
