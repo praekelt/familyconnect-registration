@@ -1,4 +1,3 @@
-import datetime
 import json
 
 from django.test import TestCase
@@ -56,7 +55,8 @@ class TestRecordCreation(AuthenticatedAPITestCase):
     def test_record_create_unique_ten_digit(self):
         # Setup
         data = {
-            "identity": "9d02ae1a-16e4-4674-abdc-daf9cce9c52d"
+            "identity": "9d02ae1a-16e4-4674-abdc-daf9cce9c52d",
+            "write_to": "health_id"
         }
         # Execute
         Record.objects.create(**data)
@@ -66,15 +66,19 @@ class TestRecordCreation(AuthenticatedAPITestCase):
         self.assertEqual(len(str(d.id)), 10)
         self.assertEqual(str(d.identity),
                          "9d02ae1a-16e4-4674-abdc-daf9cce9c52d")
+        self.assertEqual(d.length, 10)
+        self.assertEqual(d.write_to, "health_id")
 
     def test_record_create_unique_ten_digit_two(self):
         # Setup
         data = {
-            "identity": "9d02ae1a-16e4-4674-abdc-daf9cce9c52d"
+            "identity": "9d02ae1a-16e4-4674-abdc-daf9cce9c52d",
+            "write_to": "health_id"
         }
         Record.objects.create(**data)
         data2 = {
-            "identity": "c304f463-6db4-4f89-a095-46319da06ac9"
+            "identity": "c304f463-6db4-4f89-a095-46319da06ac9",
+            "write_to": "health_id"
         }
         # Execute
         Record.objects.create(**data2)
@@ -93,7 +97,8 @@ class TestRecordAPI(AuthenticatedAPITestCase):
                 "target": "http://example.com/api/v1/uniqueid/"
             },
             "data": {
-                "identity": "9d02ae1a-16e4-4674-abdc-daf9cce9c52d"
+                "identity": "9d02ae1a-16e4-4674-abdc-daf9cce9c52d",
+                "write_to": "health_id"
             }
         }
         # Execute
@@ -109,6 +114,33 @@ class TestRecordAPI(AuthenticatedAPITestCase):
         self.assertEqual(str(d.identity),
                          "9d02ae1a-16e4-4674-abdc-daf9cce9c52d")
 
+    def test_webook_api_create_unique_twelve_digit(self):
+        # Setup
+        post_webhook = {
+            "hook": {
+                "id": 2,
+                "event": "identity.added",
+                "target": "http://example.com/api/v1/uniqueid/"
+            },
+            "data": {
+                "identity": "9d02ae1a-16e4-4674-abdc-daf9cce9c52d",
+                "write_to": "health_id",
+                "length": 12
+            }
+        }
+        # Execute
+        response = self.normalclient.post('/api/v1/uniqueid/',
+                                          json.dumps(post_webhook),
+                                          content_type='application/json')
+        # Check
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        d = Record.objects.last()
+        self.assertIsNotNone(d.id)
+        self.assertEqual(len(str(d.id)), 12)
+        self.assertEqual(str(d.identity),
+                         "9d02ae1a-16e4-4674-abdc-daf9cce9c52d")
+
     def test_webook_api_missing_identity(self):
         # Setup
         post_webhook = {
@@ -118,7 +150,8 @@ class TestRecordAPI(AuthenticatedAPITestCase):
                 "target": "http://example.com/api/v1/uniqueid/"
             },
             "data": {
-                "frank": "bob"
+                "frank": "bob",
+                "write_to": "health_id"
             }
         }
         # Execute

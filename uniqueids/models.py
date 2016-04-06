@@ -12,9 +12,12 @@ class Record(models.Model):
     """ The source from which a registation originates.
         The User foreignkey is used to identify the source based on the
         user's api token.
+        write_to is the field we should write back to on the identity details
     """
     id = models.BigIntegerField(primary_key=True)
     identity = models.UUIDField()
+    write_to = models.CharField(max_length=36, null=False, blank=False)
+    length = models.IntegerField(default=10)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(User, related_name='records_created',
@@ -32,7 +35,7 @@ def record_pre_save(sender, instance, **kwargs):
     """ Pre save hook to generate a unique
     """
     if instance.id is None:
-        instance.id = generate_unique_id(length=10)
+        instance.id = generate_unique_id(length=instance.length)
 
 
 def randomDigits(digits):
