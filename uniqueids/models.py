@@ -38,7 +38,7 @@ def record_pre_save(sender, instance, **kwargs):
         instance.id = generate_unique_id(length=instance.length)
 
 
-def randomDigits(digits):
+def random_digits(digits):
     lower = 10**(digits-1)
     upper = 10**digits - 1
     return random.randint(lower, upper)
@@ -48,8 +48,8 @@ def digits_of(number):
     return [int(digit) for digit in str(number)]
 
 
-def luhn_checksum(card_number):
-    digits = digits_of(card_number)
+def luhn_checksum(the_number):
+    digits = digits_of(the_number)
     odd_digits = digits[-1::-2]
     even_digits = digits[-2::-2]
     total = sum(odd_digits)
@@ -58,13 +58,13 @@ def luhn_checksum(card_number):
     return total % 10
 
 
-def calculate_luhn(partial_card_number):
-    check_digit = luhn_checksum(int(partial_card_number) * 10)
+def calculate_luhn(partial_number):
+    check_digit = luhn_checksum(int(partial_number) * 10)
     return check_digit if check_digit == 0 else 10 - check_digit
 
 
 def generate_unique_id(length=10, attempts=0):
-    source = randomDigits(length-1)
+    source = random_digits(length-1)
     checksum = calculate_luhn(source)
     unique_id = int(str(source) + str(checksum))
 
