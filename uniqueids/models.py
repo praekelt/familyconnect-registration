@@ -9,9 +9,7 @@ from django.utils.encoding import python_2_unicode_compatible
 
 @python_2_unicode_compatible
 class Record(models.Model):
-    """ The source from which a registation originates.
-        The User foreignkey is used to identify the source based on the
-        user's api token.
+    """ The historical record of identities requiring unique integer refs
         write_to is the field we should write back to on the identity details
     """
     id = models.BigIntegerField(primary_key=True)
@@ -72,5 +70,7 @@ def generate_unique_id(length=10, attempts=0):
         Record.objects.get(id=unique_id)
         if attempts < 10:
             generate_unique_id(length=length, attempts=attempts+1)
+        else:
+            return "Aborting unique_id generation after 10 failed attempts"
     except Record.DoesNotExist:
         return unique_id
