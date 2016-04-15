@@ -2,9 +2,11 @@ import random
 
 from django.contrib.auth.models import User
 from django.db import models
-from django.db.models.signals import pre_save
+from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.utils.encoding import python_2_unicode_compatible
+
+from .tasks import add_unique_id_to_identity
 
 
 @python_2_unicode_compatible
@@ -30,10 +32,23 @@ class Record(models.Model):
 
 @receiver(pre_save, sender=Record)
 def record_pre_save(sender, instance, **kwargs):
-    """ Pre save hook to generate a unique
+    """ Pre save hook to generate a unique ID
     """
     if instance.id is None:
         instance.id = generate_unique_id(length=instance.length)
+
+
+@receiver(post_save, sender=Record)
+def record_post_save(sender, instance, created, **kwargs):
+    """ Post save hook to patch the source identity
+    """
+    if created:
+        add_unique_id_to_identity.apply_async(
+            kwargs={
+                "identity": str(instance.identity),
+                "unique_id": instance.id,
+                "write_to": instance.write_to
+            })
 
 
 def random_digits(digits):

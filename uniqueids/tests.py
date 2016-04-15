@@ -1,13 +1,17 @@
 import json
+import responses
 
 from django.test import TestCase
 from django.contrib.auth.models import User
+from django.db.models.signals import post_save
 
 from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
+from rest_hooks.models import model_saved
 
-from .models import Record
+from .models import Record, record_post_save
+from .tasks import add_unique_id_to_identity
 
 
 class APITestCase(TestCase):
@@ -19,8 +23,31 @@ class APITestCase(TestCase):
 
 class AuthenticatedAPITestCase(APITestCase):
 
+    def _replace_post_save_hooks(self):
+        def has_listeners():
+            return post_save.has_listeners(Record)
+        assert has_listeners(), (
+            "Record model has no post_save listeners. Make sure"
+            " helpers cleaned up properly in earlier tests.")
+        post_save.disconnect(receiver=record_post_save,
+                             sender=Record)
+        post_save.disconnect(receiver=model_saved,
+                             dispatch_uid='instance-saved-hook')
+        assert not has_listeners(), (
+            "Record model still has post_save listeners. Make sure"
+            " helpers cleaned up properly in earlier tests.")
+
+    def _restore_post_save_hooks(self):
+        def has_listeners():
+            return post_save.has_listeners(Record)
+        assert not has_listeners(), (
+            "Record model still has post_save listeners. Make sure"
+            " helpers removed them properly in earlier tests.")
+        post_save.connect(record_post_save, sender=Record)
+
     def setUp(self):
         super(AuthenticatedAPITestCase, self).setUp()
+        self._replace_post_save_hooks()
 
         # Normal User setup
         self.normalusername = 'testnormaluser'
@@ -47,7 +74,7 @@ class AuthenticatedAPITestCase(APITestCase):
             HTTP_AUTHORIZATION='Token ' + self.admintoken)
 
     def tearDown(self):
-        pass
+        self._restore_post_save_hooks()
 
 
 class TestRecordCreation(AuthenticatedAPITestCase):
@@ -162,3 +189,95 @@ class TestRecordAPI(AuthenticatedAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json(), {'identity': [
             'This field is required.']})
+
+
+class TestRecordTasks(AuthenticatedAPITestCase):
+
+    @responses.activate
+    def test_identity_patch(self):
+        # Setup
+        # mock identity lookup
+        responses.add(
+            responses.GET,
+            'http://localhost:8001/api/v1/identities/%s/' % (
+                "70097580-c9fe-4f92-a55e-8f5f54b19799",),
+            json={
+                "id": "70097580-c9fe-4f92-a55e-8f5f54b19799",
+                "version": 1,
+                "details": {
+                    "default_addr_type": "msisdn",
+                    "addresses": {
+                        "msisdn": {
+                            "+256720000222": {}
+                        }
+                    },
+                    "receiver_role": "mother",
+                    "preferred_language": "eng_UG"
+                },
+                "created_at": "2015-07-10T06:13:29.693272Z",
+                "updated_at": "2015-07-10T06:13:29.693298Z"
+            },
+            status=200, content_type='application/json',
+        )
+        # mock patch subscription request
+        payload = {
+            "details": {
+                "default_addr_type": "msisdn",
+                "addresses": {
+                    "msisdn": {
+                        "+256720000222": {}
+                    }
+                },
+                "receiver_role": "mother",
+                "preferred_language": "eng_UG",
+                "unique_id": 1234567890
+            }
+        }
+        responses.add(
+            responses.PATCH,
+            'http://localhost:8001/api/v1/identities/%s/' % (
+                "70097580-c9fe-4f92-a55e-8f5f54b19799",),
+            json=payload,
+            status=201, content_type='application/json',
+        )
+
+        # Execute
+        result = add_unique_id_to_identity.apply_async(
+            kwargs={
+                "identity": "70097580-c9fe-4f92-a55e-8f5f54b19799",
+                "unique_id": 1234567890,
+                "write_to": "unique_id"
+            })
+
+        # Check
+        self.assertEqual(
+            result.get(),
+            "Identity <70097580-c9fe-4f92-a55e-8f5f54b19799> now has "
+            "<unique_id> of <1234567890>")
+
+    @responses.activate
+    def test_identity_patch_not_found(self):
+        # Setup
+        # mock identity lookup
+        responses.add(
+            responses.GET,
+            'http://localhost:8001/api/v1/identities/%s/' % (
+                "70097580-c9fe-4f92-a55e-8f5f54b19799",),
+            json={
+                "error": "object not found",
+                },
+            status=404, content_type='application/json',
+        )
+
+        # Execute
+        result = add_unique_id_to_identity.apply_async(
+            kwargs={
+                "identity": "70097580-c9fe-4f92-a55e-8f5f54b19799",
+                "unique_id": 1234567890,
+                "write_to": "unique_id"
+            })
+
+        # Check
+        self.assertEqual(
+            result.get(),
+            "Identity <70097580-c9fe-4f92-a55e-8f5f54b19799> not found")
