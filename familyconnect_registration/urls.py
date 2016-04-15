@@ -15,4 +15,5 @@ urlpatterns = patterns(
         'rest_framework.authtoken.views.obtain_auth_token'),
     url(r'^', include('registrations.urls')),
     url(r'^', include('changes.urls')),
+    url(r'^', include('uniqueids.urls')),
 )

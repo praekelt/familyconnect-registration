@@ -51,7 +51,8 @@ INSTALLED_APPS = (
     'rest_hooks',
     # us
     'registrations',
-    'changes'
+    'changes',
+    'uniqueids'
 
 )
 
