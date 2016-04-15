@@ -14,14 +14,14 @@ class AddUniqueIDToIdentity(Task):
         unique_id:    the unique_id to add to the identity
         write_to:     the key to write the unique_id to
         """
-        details = utils.get_identity(identity)
-        if "details" in details:
+        full_identity = utils.get_identity(identity)
+        if "details" in full_identity:
             # not a 404
-            payload = {
-                "details": details["details"]
+            partial_identity = {
+                "details": full_identity["details"]
             }
-            payload["details"][write_to] = unique_id
-            utils.patch_identity(identity, payload)
+            partial_identity["details"][write_to] = unique_id
+            utils.patch_identity(identity, partial_identity)
             return "Identity <%s> now has <%s> of <%s>" % (
                 identity, write_to, str(unique_id))
         else:
