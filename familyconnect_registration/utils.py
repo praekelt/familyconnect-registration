@@ -54,7 +54,7 @@ def patch_identity(identity, data):
         'Authorization': 'Token %s' % settings.IDENTITY_STORE_TOKEN,
         'Content-Type': 'application/json'
     }
-    r = requests.patch(url, data=data, headers=headers)
+    r = requests.patch(url, data=json.dumps(data), headers=headers)
     r.raise_for_status()
     return r.json()
 
@@ -107,7 +107,7 @@ def patch_subscription(subscription, data):
         'Authorization': 'Token %s' % settings.STAGE_BASED_MESSAGING_TOKEN,
         'Content-Type': 'application/json'
     }
-    r = requests.patch(url, data=data, headers=headers)
+    r = requests.patch(url, data=json.dumps(data), headers=headers)
     r.raise_for_status()
     return r.json()
 
