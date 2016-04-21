@@ -120,12 +120,29 @@ class TestRecordAPI(AuthenticatedAPITestCase):
         post_webhook = {
             "hook": {
                 "id": 2,
-                "event": "identity.added",
+                "event": "identity.created",
                 "target": "http://example.com/api/v1/uniqueid/"
             },
             "data": {
-                "identity": "9d02ae1a-16e4-4674-abdc-daf9cce9c52d",
-                "write_to": "health_id"
+                "created_at": "2016-04-21T12:12:26.614872+00:00",
+                "created_by": "app_ussd",
+                "communicate_through": None,
+                "updated_by": "mikej",
+                "updated_at": "2016-04-21T12:12:26.614960+00:00",
+                "details": {
+                    "mother_id": "18efafd8-065f-40d4-b4e9-71742836e820",
+                    "default_addr_type": "msisdn",
+                    "role": "head_of_household",
+                    "addresses": {
+                        "msisdn": {
+                            "+27123": {}
+                        }
+                    },
+                    "preferred_msg_type": "text"
+                },
+                "operator": None,
+                "id": "9d02ae1a-16e4-4674-abdc-daf9cce9c52d",
+                "version": 1
             }
         }
         # Execute
@@ -146,13 +163,30 @@ class TestRecordAPI(AuthenticatedAPITestCase):
         post_webhook = {
             "hook": {
                 "id": 2,
-                "event": "identity.added",
+                "event": "identity.created",
                 "target": "http://example.com/api/v1/uniqueid/"
             },
             "data": {
-                "identity": "9d02ae1a-16e4-4674-abdc-daf9cce9c52d",
-                "write_to": "health_id",
-                "length": 12
+                "created_at": "2016-04-21T12:12:26.614872+00:00",
+                "created_by": "app_ussd",
+                "communicate_through": None,
+                "updated_by": "mikej",
+                "updated_at": "2016-04-21T12:12:26.614960+00:00",
+                "details": {
+                    "mother_id": "18efafd8-065f-40d4-b4e9-71742836e820",
+                    "default_addr_type": "msisdn",
+                    "role": "head_of_household",
+                    "addresses": {
+                        "msisdn": {
+                            "+27123": {}
+                        }
+                    },
+                    "preferred_msg_type": "text",
+                    "uniqueid_field_length": 12
+                },
+                "operator": None,
+                "id": "9d02ae1a-16e4-4674-abdc-daf9cce9c52d",
+                "version": 1
             }
         }
         # Execute
@@ -168,17 +202,68 @@ class TestRecordAPI(AuthenticatedAPITestCase):
         self.assertEqual(str(d.identity),
                          "9d02ae1a-16e4-4674-abdc-daf9cce9c52d")
 
+    def test_webook_api_create_unique_named_amazing(self):
+        # Setup
+        post_webhook = {
+            "hook": {
+                "id": 2,
+                "event": "identity.created",
+                "target": "http://example.com/api/v1/uniqueid/"
+            },
+            "data": {
+                "created_at": "2016-04-21T12:12:26.614872+00:00",
+                "created_by": "app_ussd",
+                "communicate_through": None,
+                "updated_by": "mikej",
+                "updated_at": "2016-04-21T12:12:26.614960+00:00",
+                "details": {
+                    "mother_id": "18efafd8-065f-40d4-b4e9-71742836e820",
+                    "default_addr_type": "msisdn",
+                    "role": "head_of_household",
+                    "addresses": {
+                        "msisdn": {
+                            "+27123": {}
+                        }
+                    },
+                    "preferred_msg_type": "text",
+                    "uniqueid_field_name": "amazing"
+                },
+                "operator": None,
+                "id": "9d02ae1a-16e4-4674-abdc-daf9cce9c52d",
+                "version": 1
+            }
+        }
+        # Execute
+        response = self.normalclient.post('/api/v1/uniqueid/',
+                                          json.dumps(post_webhook),
+                                          content_type='application/json')
+        # Check
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        d = Record.objects.last()
+        self.assertIsNotNone(d.id)
+        self.assertEqual(len(str(d.id)), 10)
+        self.assertEqual(d.write_to, "amazing")
+        self.assertEqual(str(d.identity),
+                         "9d02ae1a-16e4-4674-abdc-daf9cce9c52d")
+
     def test_webook_api_missing_identity(self):
         # Setup
         post_webhook = {
             "hook": {
                 "id": 2,
-                "event": "identity.added",
+                "event": "identity.created",
                 "target": "http://example.com/api/v1/uniqueid/"
             },
             "data": {
-                "frank": "bob",
-                "write_to": "health_id"
+                "created_at": "2016-04-21T12:12:26.614872+00:00",
+                "created_by": "app_ussd",
+                "communicate_through": None,
+                "updated_by": "mikej",
+                "updated_at": "2016-04-21T12:12:26.614960+00:00",
+                "details": {},
+                "operator": None,
+                "version": 1
             }
         }
         # Execute
@@ -187,7 +272,7 @@ class TestRecordAPI(AuthenticatedAPITestCase):
                                           content_type='application/json')
         # Check
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), {'identity': [
+        self.assertEqual(response.json(), {'id': [
             'This field is required.']})
 
 

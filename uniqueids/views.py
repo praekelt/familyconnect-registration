@@ -13,8 +13,21 @@ class RecordPost(APIView):
     def post(self, request, *args, **kwargs):
         """ Accepts and creates a new unique ID record
         """
-        if "identity" in request.data["data"]:
-            Record.objects.create(**request.data["data"])
+        if "id" in request.data["data"]:
+            rec = {
+                "identity": request.data["data"]["id"]
+            }
+            if "details" in request.data["data"] and \
+                    "uniqueid_field_name" in request.data["data"]["details"]:
+                rec["write_to"] = \
+                    request.data["data"]["details"]["uniqueid_field_name"]
+            else:
+                rec["write_to"] = "health_id"
+            if "details" in request.data["data"] and \
+                    "uniqueid_field_length" in request.data["data"]["details"]:
+                rec["length"] = \
+                    request.data["data"]["details"]["uniqueid_field_length"]
+            Record.objects.create(**rec)
             # Return
             status = 201
             accepted = {"accepted": True}
@@ -22,5 +35,5 @@ class RecordPost(APIView):
         else:
             # Return
             status = 400
-            accepted = {"identity": ['This field is required.']}
+            accepted = {"id": ['This field is required.']}
             return Response(accepted, status=status)
