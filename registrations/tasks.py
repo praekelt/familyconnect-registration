@@ -2,6 +2,7 @@ import datetime
 import six  # for Python 2 and 3 string type compatibility
 import requests
 import json
+import uuid
 
 from django.conf import settings
 from celery.task import Task
@@ -345,7 +346,10 @@ class DeliverHook(Task):
 
 def deliver_hook_wrapper(target, payload, instance, hook):
     if instance is not None:
-        instance_id = instance.id
+        if isinstance(instance.id, uuid.UUID):
+            instance_id = str(instance.id)
+        else:
+            instance_id = instance.id
     else:
         instance_id = None
     kwargs = dict(target=target, payload=payload,
