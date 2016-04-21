@@ -23,8 +23,8 @@ def calc_pregnancy_week_lmp(today, lmp):
 
 def get_identity(identity):
     url = "%s/%s/%s/" % (settings.IDENTITY_STORE_URL, "identities", identity)
-    headers = {'Authorization': ['Token %s' % settings.IDENTITY_STORE_TOKEN],
-               'Content-Type': ['application/json']}
+    headers = {'Authorization': 'Token %s' % settings.IDENTITY_STORE_TOKEN,
+               'Content-Type': 'application/json'}
     r = requests.get(url, headers=headers)
     return r.json()
 
@@ -33,9 +33,9 @@ def get_identity_address(identity):
     url = "%s/%s/%s/addresses/msisdn" % (settings.IDENTITY_STORE_URL,
                                          "identities", identity)
     params = {"default": True}
-    headers = {'Authorization': ['Token %s' % (
-        settings.IDENTITY_STORE_TOKEN, )],
-        'Content-Type': ['application/json']}
+    headers = {'Authorization': 'Token %s' % (
+        settings.IDENTITY_STORE_TOKEN, ),
+        'Content-Type': 'application/json'}
     r = requests.get(url, params=params, headers=headers).json()
     if len(r["results"]) > 0:
         return r["results"][0]
@@ -48,9 +48,9 @@ def patch_identity(identity, data):
     """
     url = "%s/%s/%s/" % (settings.IDENTITY_STORE_URL, "identities", identity)
     data = data
-    headers = {'Authorization': [
-        'Token %s' % settings.IDENTITY_STORE_TOKEN],
-        'Content-Type': ['application/json']
+    headers = {
+        'Authorization': 'Token %s' % settings.IDENTITY_STORE_TOKEN,
+        'Content-Type': 'application/json'
     }
     r = requests.patch(url, data=data, headers=headers)
     return r.json()
@@ -59,9 +59,9 @@ def patch_identity(identity, data):
 def get_messageset(short_name):
     url = "%s/%s/" % (settings.STAGE_BASED_MESSAGING_URL, "messageset")
     params = {'short_name': short_name}
-    headers = {'Authorization': [
-        'Token %s' % settings.STAGE_BASED_MESSAGING_TOKEN],
-        'Content-Type': ['application/json']
+    headers = {
+        'Authorization': 'Token %s' % settings.STAGE_BASED_MESSAGING_TOKEN,
+        'Content-Type': 'application/json'
     }
     r = requests.get(url, params=params, headers=headers)
     return r.json()["results"][0]  # messagesets should be unique, return 1st
@@ -70,9 +70,9 @@ def get_messageset(short_name):
 def get_schedule(schedule_id):
     url = "%s/%s/%s/" % (settings.STAGE_BASED_MESSAGING_URL,
                          "schedule", schedule_id)
-    headers = {'Authorization': [
-        'Token %s' % settings.STAGE_BASED_MESSAGING_TOKEN],
-        'Content-Type': ['application/json']
+    headers = {
+        'Authorization': 'Token %s' % settings.STAGE_BASED_MESSAGING_TOKEN,
+        'Content-Type': 'application/json'
     }
     r = requests.get(url, headers=headers)
     return r.json()
@@ -83,9 +83,9 @@ def get_subscriptions(identity):
     """
     url = "%s/%s/" % (settings.STAGE_BASED_MESSAGING_URL, "subscriptions")
     params = {'id': identity, 'active': True}
-    headers = {'Authorization': [
-        'Token %s' % settings.STAGE_BASED_MESSAGING_TOKEN],
-        'Content-Type': ['application/json']
+    headers = {
+        'Authorization': 'Token %s' % settings.STAGE_BASED_MESSAGING_TOKEN,
+        'Content-Type': 'application/json'
     }
     r = requests.get(url, params=params, headers=headers)
     return r.json()["results"]
@@ -97,9 +97,9 @@ def patch_subscription(subscription, data):
     url = "%s/%s/%s/" % (settings.STAGE_BASED_MESSAGING_URL,
                          "subscriptions", subscription["id"])
     data = data
-    headers = {'Authorization': [
-        'Token %s' % settings.STAGE_BASED_MESSAGING_TOKEN],
-        'Content-Type': ['application/json']
+    headers = {
+        'Authorization': 'Token %s' % settings.STAGE_BASED_MESSAGING_TOKEN,
+        'Content-Type': 'application/json'
     }
     r = requests.patch(url, data=data, headers=headers)
     return r.json()
@@ -162,8 +162,7 @@ def post_message(payload):
         data=json.dumps(payload),
         headers={
             'Content-Type': 'application/json',
-            'Authorization': 'Token %s' % (
-                settings.MESSAGE_SENDER_TOKEN,)
+            'Authorization': 'Token %s' % settings.MESSAGE_SENDER_TOKEN
         }
     ).json()
     return result
