@@ -147,7 +147,7 @@ HOOK_AUTH_TOKEN = os.environ.get('HOOK_AUTH_TOKEN', 'REPLACEME')
 CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
 CELERYBEAT_SCHEDULER = 'djcelery.schedulers.DatabaseScheduler'
 
-BROKER_URL = os.environ.get('RABBITMQ_URL', 'redis://localhost:6379/0')
+BROKER_URL = os.environ.get('BROKER_URL', 'redis://localhost:6379/0')
 
 CELERY_DEFAULT_QUEUE = 'familyconnect_registration'
 CELERY_QUEUES = (
