@@ -36,9 +36,11 @@ def get_identity_address(identity):
     headers = {'Authorization': 'Token %s' % (
         settings.IDENTITY_STORE_TOKEN, ),
         'Content-Type': 'application/json'}
-    r = requests.get(url, params=params, headers=headers).json()
-    if len(r["results"]) > 0:
-        return r["results"][0]
+    r = requests.get(url, params=params, headers=headers)
+    r.raise_for_status()
+    result = r.json()
+    if len(result["results"]) > 0:
+        return result["results"][0]
     else:
         return None
 
@@ -53,6 +55,7 @@ def patch_identity(identity, data):
         'Content-Type': 'application/json'
     }
     r = requests.patch(url, data=data, headers=headers)
+    r.raise_for_status()
     return r.json()
 
 
@@ -64,6 +67,7 @@ def get_messageset(short_name):
         'Content-Type': 'application/json'
     }
     r = requests.get(url, params=params, headers=headers)
+    r.raise_for_status()
     return r.json()["results"][0]  # messagesets should be unique, return 1st
 
 
@@ -75,6 +79,7 @@ def get_schedule(schedule_id):
         'Content-Type': 'application/json'
     }
     r = requests.get(url, headers=headers)
+    r.raise_for_status()
     return r.json()
 
 
@@ -88,6 +93,7 @@ def get_subscriptions(identity):
         'Content-Type': 'application/json'
     }
     r = requests.get(url, params=params, headers=headers)
+    r.raise_for_status()
     return r.json()["results"]
 
 
@@ -102,6 +108,7 @@ def patch_subscription(subscription, data):
         'Content-Type': 'application/json'
     }
     r = requests.patch(url, data=data, headers=headers)
+    r.raise_for_status()
     return r.json()
 
 
@@ -164,5 +171,6 @@ def post_message(payload):
             'Content-Type': 'application/json',
             'Authorization': 'Token %s' % settings.MESSAGE_SENDER_TOKEN
         }
-    ).json()
-    return result
+    )
+    result.raise_for_status()
+    return result.json()
