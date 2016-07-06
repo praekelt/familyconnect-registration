@@ -263,7 +263,7 @@ class ValidateRegistration(Task):
                 short_name, weeks)
 
         mother_sub = {
-            "contact": registration.mother_id,
+            "identity": registration.mother_id,
             "messageset": msgset_id,
             "next_sequence_number": next_sequence_number,
             "lang": registration.data["language"],

@@ -792,7 +792,7 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         # Check
         self.assertEqual(result.get(), "Validation completed - Success")
         d = SubscriptionRequest.objects.last()
-        self.assertEqual(d.contact, "mother01-63e2-4acc-9b94-26663b9bc267")
+        self.assertEqual(d.identity, "mother01-63e2-4acc-9b94-26663b9bc267")
         self.assertEqual(d.messageset, 1)
         self.assertEqual(d.next_sequence_number, 48)  # (28-4)*2
         self.assertEqual(d.lang, "eng_UG")
@@ -936,7 +936,7 @@ class TestSubscriptionRequest(AuthenticatedAPITestCase):
         # Check
         self.assertEqual(result, "SubscriptionRequest created")
         d = SubscriptionRequest.objects.last()
-        self.assertEqual(d.contact, "mother01-63e2-4acc-9b94-26663b9bc267")
+        self.assertEqual(d.identity, "mother01-63e2-4acc-9b94-26663b9bc267")
         self.assertEqual(d.messageset, 2)
         self.assertEqual(d.next_sequence_number, 11)  # (15-4)*1
         self.assertEqual(d.lang, "eng_UG")
@@ -982,7 +982,7 @@ class TestSubscriptionRequestWebhook(AuthenticatedAPITestCase):
     #         "data": {
     #             "messageset": 1,
     #             "updated_at": "2016-02-17T07:59:42.831568+00:00",
-    #             "contact": "mother01-63e2-4acc-9b94-26663b9bc267",
+    #             "identity": "mother01-63e2-4acc-9b94-26663b9bc267",
     #             "lang": "eng_NG",
     #             "created_at": "2016-02-17T07:59:42.831533+00:00",
     #             "id": "5282ed58-348f-4a54-b1ff-f702e36ec3cc",
@@ -1008,7 +1008,7 @@ class TestSubscriptionRequestWebhook(AuthenticatedAPITestCase):
     #     # Check
     #     self.assertEqual(result, "SubscriptionRequest created")
     #     d = SubscriptionRequest.objects.last()
-    #     self.assertEqual(d.contact,
+    #     self.assertEqual(d.identity,
     #                      "mother01-63e2-4acc-9b94-26663b9bc267")
     #     self.assertEqual(d.messageset, 1)
     #     self.assertEqual(d.next_sequence_number, 1)

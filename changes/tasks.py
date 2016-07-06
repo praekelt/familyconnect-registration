@@ -31,7 +31,7 @@ class ImplementAction(Task):
 
         # Make new subscription request object
         mother_sub = {
-            "contact": registration.mother_id,
+            "identity": registration.mother_id,
             "messageset": msgset_id,
             "next_sequence_number": next_sequence_number,
             "lang": mother["details"]["preferred_language"],
@@ -62,7 +62,7 @@ class ImplementAction(Task):
 
         # Make new subscription request object
         mother_sub = {
-            "contact": change.mother_id,
+            "identity": change.mother_id,
             "messageset": msgset_id,
             "next_sequence_number": next_sequence_number,
             "lang": mother["details"]["preferred_language"],

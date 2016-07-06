@@ -460,7 +460,7 @@ class TestChangeBaby(AuthenticatedAPITestCase):
         # Check
         self.assertEqual(result.get(), "Change baby completed")
         d = SubscriptionRequest.objects.last()
-        self.assertEqual(d.contact, "mother01-63e2-4acc-9b94-26663b9bc267")
+        self.assertEqual(d.identity, "mother01-63e2-4acc-9b94-26663b9bc267")
         self.assertEqual(d.messageset, 3)
         self.assertEqual(d.next_sequence_number, 1)
         self.assertEqual(d.lang, "eng_UG")
@@ -670,7 +670,7 @@ class TestChangeLoss(AuthenticatedAPITestCase):
         # Check
         self.assertEqual(result.get(), "Change loss completed")
         d = SubscriptionRequest.objects.last()
-        self.assertEqual(d.contact, "mother01-63e2-4acc-9b94-26663b9bc267")
+        self.assertEqual(d.identity, "mother01-63e2-4acc-9b94-26663b9bc267")
         self.assertEqual(d.messageset, 5)
         self.assertEqual(d.next_sequence_number, 1)
         self.assertEqual(d.lang, "eng_UG")
