@@ -33,14 +33,13 @@ def get_identity_address(identity):
     url = "%s/%s/%s/addresses/msisdn" % (settings.IDENTITY_STORE_URL,
                                          "identities", identity)
     params = {"default": True}
-    headers = {'Authorization': 'Token %s' % (
-        settings.IDENTITY_STORE_TOKEN, ),
-        'Content-Type': 'application/json'}
-    r = requests.get(url, params=params, headers=headers)
-    r.raise_for_status()
-    result = r.json()
-    if len(result["results"]) > 0:
-        return result["results"][0]
+    headers = {
+        'Authorization': 'Token %s' % settings.IDENTITY_STORE_TOKEN,
+        'Content-Type': 'application/json'
+    }
+    r = requests.get(url, params=params, headers=headers).json()
+    if len(r["results"]) > 0:
+        return r["results"][0]["address"]
     else:
         return None
 
