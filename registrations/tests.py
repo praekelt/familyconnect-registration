@@ -386,24 +386,26 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
         registration = self.make_registration_adminuser()
         # Execute
         response = self.adminclient.get(
-            '/api/v1/registration/%s/' % registration.id,
+            '/api/v1/registrations/%s/' % registration.id,
             content_type='application/json')
         # Check
-        # Currently only posts are allowed
-        self.assertEqual(response.status_code,
-                         status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["stage"], "prebirth")
+        self.assertEqual(response.data["data"]["test_adminuser_reg_key"],
+                         "test_adminuser_reg_value")
 
     def test_get_registration_normaluser(self):
         # Setup
         registration = self.make_registration_normaluser()
         # Execute
         response = self.normalclient.get(
-            '/api/v1/registration/%s/' % registration.id,
+            '/api/v1/registrations/%s/' % registration.id,
             content_type='application/json')
         # Check
-        # Currently only posts are allowed
-        self.assertEqual(response.status_code,
-                         status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["stage"], "prebirth")
+        self.assertEqual(response.data["data"]["test_normaluser_reg_key"],
+                         "test_normaluser_reg_value")
 
     def test_create_registration_adminuser(self):
         # Setup
