@@ -69,3 +69,13 @@ class RegistrationPost(mixins.CreateModelMixin, generics.GenericAPIView):
 
     # def perform_update(self, serializer):
     #     serializer.save(updated_by=self.request.user)
+
+
+class RegistrationGetViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    API endpoint that allows Registrations to be viewed.
+    """
+    permission_classes = (IsAuthenticated,)
+    queryset = Registration.objects.all()
+    serializer_class = RegistrationSerializer
+    filter_fields = ('mother_id',)
