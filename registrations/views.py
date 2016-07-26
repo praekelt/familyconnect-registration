@@ -78,4 +78,4 @@ class RegistrationGetViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = (IsAuthenticated,)
     queryset = Registration.objects.all()
     serializer_class = RegistrationSerializer
-    filter_fields = ('mother_id',)
+    filter_fields = ('stage', 'mother_id', 'validated', 'source', 'created_at')
