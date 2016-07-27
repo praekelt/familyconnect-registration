@@ -1,6 +1,7 @@
+import django_filters
 from django.contrib.auth.models import User, Group
 from rest_hooks.models import Hook
-from rest_framework import viewsets, mixins, generics
+from rest_framework import viewsets, mixins, generics, filters
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
 from .models import Source, Registration
@@ -69,3 +70,27 @@ class RegistrationPost(mixins.CreateModelMixin, generics.GenericAPIView):
 
     # def perform_update(self, serializer):
     #     serializer.save(updated_by=self.request.user)
+
+
+class RegistrationFilter(filters.FilterSet):
+    """Filter for registrations created, using ISO 8601 formatted dates"""
+    created_before = django_filters.IsoDateTimeFilter(name="created_at",
+                                                      lookup_type="lte")
+    created_after = django_filters.IsoDateTimeFilter(name="created_at",
+                                                     lookup_type="gte")
+
+    class Meta:
+        model = Registration
+        ('stage', 'mother_id', 'validated', 'source', 'created_at')
+        fields = ['stage', 'mother_id', 'validated', 'source',
+                  'created_before', 'created_after']
+
+
+class RegistrationGetViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    API endpoint that allows Registrations to be viewed.
+    """
+    permission_classes = (IsAuthenticated,)
+    queryset = Registration.objects.all()
+    serializer_class = RegistrationSerializer
+    filter_class = RegistrationFilter
