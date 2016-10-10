@@ -48,14 +48,6 @@ def is_valid_name(name):
     return isinstance(name, six.string_types)  # TODO reject non-letters
 
 
-def is_valid_id_type(id_type):
-    return id_type in ["ugandan_id", "other"]
-
-
-def is_valid_id_no(id_no):
-    return isinstance(id_no, six.string_types)  # TODO proper id validation
-
-
 class ValidateRegistration(Task):
     """ Task to validate a registration model entry's registration
     data.
@@ -75,14 +67,10 @@ class ValidateRegistration(Task):
             if field == "msg_type":
                 if not is_valid_msg_type(registration_data[field]):
                     failures.append(field)
-            if field in ["last_period_date", "baby_dob", "mama_dob"]:
+            if field in ["last_period_date", "baby_dob"]:
                 if not is_valid_date(registration_data[field]):
                     failures.append(field)
                 else:
-                    # Check that if mama_dob is provided, the ID type is other
-                    if (field == "mama_dob" and
-                       registration_data["mama_id_type"] != "other"):
-                        failures.append("mama_dob requires id_type other")
                     # Check last_period_date is in the past and < 42 weeks ago
                     if field == "last_period_date":
                         preg_weeks = utils.calc_pregnancy_week_lmp(
@@ -99,15 +87,6 @@ class ValidateRegistration(Task):
                          "mama_surname"]:
                 if not is_valid_name(registration_data[field]):
                     failures.append(field)
-            if field == "mama_id_type":
-                if not is_valid_id_type(registration_data[field]):
-                    failures.append(field)
-            if field == "mama_id_no":
-                if not is_valid_id_no(registration_data[field]):
-                    failures.append(field)
-                # Check that if ID no is provided, the ID type ugandan_id
-                if not registration_data["mama_id_type"] == "ugandan_id":
-                    failures.append("mama_id_no requires id_type ugandan_id")
         return failures
 
     def validate(self, registration):
@@ -119,17 +98,15 @@ class ValidateRegistration(Task):
                           "msg_type"]
         fields_prebirth = ["last_period_date", "msg_receiver"]
         fields_loss = ["loss_reason"]
-        fields_hw_id = ["operator_id", "hoh_name", "hoh_surname", "mama_name",
-                        "mama_surname", "mama_id_type", "mama_id_no"]
-        fields_hw_dob = ["operator_id", "hoh_name", "hoh_surname", "mama_name",
-                         "mama_surname", "mama_id_type", "mama_dob"]
+        fields_hw = [
+            "operator_id", "hoh_name", "hoh_surname", "mama_name",
+            "mama_surname",
+        ]
 
         # Perhaps the below should rather be hardcoded to save a tiny bit of
         # processing time for each registration
-        hw_pre_id = list(set(fields_general) | set(fields_prebirth) |
-                         set(fields_hw_id))
-        hw_pre_dob = list(set(fields_general) | set(fields_prebirth) |
-                          set(fields_hw_dob))
+        hw_pre = list(
+            set(fields_general) | set(fields_prebirth) | set(fields_hw))
         pbl_pre = list(set(fields_general) | set(fields_prebirth))
         pbl_loss = list(set(fields_general) | set(fields_loss))
 
@@ -170,31 +147,14 @@ class ValidateRegistration(Task):
                 registration.save()
                 return False
 
-        # HW registration, prebirth, id
+        # HW registration, prebirth
         if (registration.stage == "prebirth" and
                 registration.source.authority in ["hw_limited", "hw_full"] and
-                set(hw_pre_id).issubset(data_fields)):  # ignore extra data
+                set(hw_pre).issubset(data_fields)):  # ignore extra data
             invalid_fields = self.check_field_values(
-                hw_pre_id, registration.data)
+                hw_pre, registration.data)
             if invalid_fields == []:
-                registration.data["reg_type"] = "hw_pre_id"
-                registration.data["preg_week"] = utils.calc_pregnancy_week_lmp(
-                    utils.get_today(), registration.data["last_period_date"])
-                registration.validated = True
-                registration.save()
-                return True
-            else:
-                registration.data["invalid_fields"] = invalid_fields
-                registration.save()
-                return False
-        # HW registration, prebirth, dob
-        if (registration.stage == "prebirth" and
-                registration.source.authority in ["hw_limited", "hw_full"] and
-                set(hw_pre_dob).issubset(data_fields)):
-            invalid_fields = self.check_field_values(
-                hw_pre_dob, registration.data)
-            if invalid_fields == []:
-                registration.data["reg_type"] = "hw_pre_dob"
+                registration.data["reg_type"] = "hw_pre"
                 registration.data["preg_week"] = utils.calc_pregnancy_week_lmp(
                     utils.get_today(), registration.data["last_period_date"])
                 registration.validated = True
