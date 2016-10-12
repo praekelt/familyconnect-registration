@@ -19,6 +19,14 @@ class TestLocations(APITestCase):
         self.client.credentials(
             HTTP_AUTHORIZATION='Token {}'.format(token.key))
 
+    def test_parish_string_representation(self):
+        """
+        The Parish model should have an appropriate string representation.
+        """
+        parish = Parish.objects.create(name='Kawaaga')
+        self.assertEqual(str(parish), 'Kawaaga')
+        self.assertEqual(unicode(parish), u'Kawaaga')
+
     def test_search_authorization_required(self):
         """
         If no autorization token is provided, the client should not be able to
