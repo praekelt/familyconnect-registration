@@ -47,6 +47,7 @@ INSTALLED_APPS = (
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'django.contrib.postgres',
     'django.contrib.staticfiles',
     # 3rd party
     'djcelery',
@@ -58,8 +59,8 @@ INSTALLED_APPS = (
     # us
     'registrations',
     'changes',
-    'uniqueids'
-
+    'uniqueids',
+    'locations',
 )
 
 MIDDLEWARE_CLASSES = (
