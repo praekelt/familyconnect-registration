@@ -25,7 +25,6 @@ class TestLocations(APITestCase):
         """
         parish = Parish.objects.create(name='Kawaaga')
         self.assertEqual(str(parish), 'Kawaaga')
-        self.assertEqual(unicode(parish), u'Kawaaga')
 
     def test_search_authorization_required(self):
         """
