@@ -23,6 +23,7 @@ class SyncLocations(Task):
         while True:
             for identity in identities.get('results', []):
                 yield identity
+            # If there is a next page, extract the querystring and get it
             if identities.get('next') is not None:
                 qs = urlparse(identities['next']).query
                 identities = client.get_identities(params=qs)
