@@ -32,8 +32,18 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'REPLACEME')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', False)
 
-TEMPLATE_DEBUG = DEBUG
-
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.contrib.auth.context_processors.auth',
+            ],
+        },
+    },
+]
 ALLOWED_HOSTS = ['*']
 
 
@@ -47,6 +57,7 @@ INSTALLED_APPS = (
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'django.contrib.postgres',
     'django.contrib.staticfiles',
     # 3rd party
     'djcelery',
@@ -58,8 +69,8 @@ INSTALLED_APPS = (
     # us
     'registrations',
     'changes',
-    'uniqueids'
-
+    'uniqueids',
+    'locations',
 )
 
 MIDDLEWARE_CLASSES = (
