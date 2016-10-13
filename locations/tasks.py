@@ -1,4 +1,6 @@
-import urlparse
+from future.standard_library import install_aliases
+install_aliases()  # noqa
+from urllib.parse import urlparse
 
 from celery.task import Task
 from django.conf import settings
@@ -22,7 +24,7 @@ class SyncLocations(Task):
             for identity in identities.get('results', []):
                 yield identity
             if identities.get('next') is not None:
-                qs = urlparse.urlparse(identities['next']).query
+                qs = urlparse(identities['next']).query
                 identities = client.get_identities(params=qs)
             else:
                 break
