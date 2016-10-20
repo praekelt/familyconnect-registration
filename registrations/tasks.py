@@ -89,6 +89,24 @@ class ValidateRegistration(Task):
                     failures.append(field)
         return failures
 
+    def send_vht_sms(self, mother_id, parish, vht_id=None):
+        """Sends an sms to the specific VHT, or if there is no VHT specified,
+        sends an sms to all VHTs in the parish."""
+        if vht_id is not None:
+            vhts = (utils.get_identity(vht_id),)
+        else:
+            vhts = utils.get_vhts_for_parish(parish)
+
+        mother_address = utils.get_identity_address(mother_id)
+        sms_text = settings.VHT_PUBLIC_REGISTRATION_NOTIFICATION_TEXT.format(
+            mother=mother_address)
+        for vht in vhts:
+            utils.post_message({
+                'to_addr': utils.get_identity_address(vht['id']),
+                'content': sms_text,
+                'metadata': {},
+            })
+
     def validate(self, registration):
         """ Validates that all the required info is provided for a
         prebirth registration.
@@ -171,6 +189,12 @@ class ValidateRegistration(Task):
             invalid_fields = self.check_field_values(
                 pbl_pre, registration.data)
             if invalid_fields == []:
+                if registration.data.get('parish') is not None:
+                    self.send_vht_sms(
+                        mother_id=registration.data['receiver_id'],
+                        parish=registration.data['parish'],
+                        vht_id=registration.data.get('vht_id'))
+
                 registration.data["reg_type"] = "pbl_pre"
                 registration.data["preg_week"] = utils.calc_pregnancy_week_lmp(
                     utils.get_today(), registration.data["last_period_date"])
