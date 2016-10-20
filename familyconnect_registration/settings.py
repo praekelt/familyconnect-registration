@@ -225,3 +225,7 @@ HOUSEHOLD_HW_WELCOME_TEXT_UG_ENG = os.environ.get(
     'HOUSEHOLD_HW_WELCOME_TEXT_UG_ENG', "Welcome to FamilyConnect. Your FamilyConnect ID is [health_id]. Write it down and give it to the Nurse at your next clinic visit.")  # noqa
 HOUSEHOLD_PUBLIC_WELCOME_TEXT_UG_ENG = os.environ.get(
     'HOUSEHOLD_PUBLIC_WELCOME_TEXT_UG_ENG', "Welcome to FamilyConnect. The FamilyConnect ID for this woman is [health_id]. Write it down and give it to the Nurse at the next clinic visit.")  # noqa
+VHT_PUBLIC_REGISTRATION_NOTIFICATION_TEXT = os.environ.get(
+    'VHT_PUBLIC_REGISTRATION_NOTIFICATION_TEXT', "There is a new pregnancy in "
+    "your parish. Call {mother} and visit the mother to update her "
+    "registration.")
