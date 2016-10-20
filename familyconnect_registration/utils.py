@@ -44,6 +44,27 @@ def get_identity_address(identity):
         return None
 
 
+def get_vhts_for_parish(parish):
+    """Returns an iterator over all of the VHTs that match the given parish."""
+    url = '%s/identities/search' % settings.IDENTITY_STORE_URL
+    params = {
+        'details__has_key': 'personnel_code',
+        'details_parish': parish
+    }
+    headers = {
+        'Authorization': 'Token %s' % settings.IDENTITY_STORE_TOKEN,
+        'Content-Type': 'application/json'
+    }
+    r = requests.get(url, params=params, headers=headers).json()
+    while True:
+        for r in r.get('results', []):
+            yield r
+        if r.get('next') is not None:
+            r = requests.get(r['next'], headers=headers)
+        else:
+            break
+
+
 def patch_identity(identity, data):
     """ Patches the given identity with the data provided
     """
