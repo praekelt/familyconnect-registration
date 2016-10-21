@@ -812,12 +812,12 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         self.assertEqual(registration.data["preg_week"], 28)
         self.assertEqual(registration.validated, True)
         sms_http_call = responses.calls[-1].request
-        self.assertEqual(sms_http_call.body, json.dumps({
+        self.assertEqual(json.loads(sms_http_call.body), {
             "content": (
                 "There is a new pregnancy in your parish. "
                 "Call +4321 and visit the mother to update her registration."),
             "to_addr": "+1234",
-            "metadata": {}}))
+            "metadata": {}})
 
     @responses.activate
     def test_validate_pbl_prebirth_location(self):
