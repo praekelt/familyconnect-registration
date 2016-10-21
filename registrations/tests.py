@@ -884,18 +884,18 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         [sms01, sms02] = filter(
             lambda r: r.request.url == 'http://localhost:8006/api/v1/'
             'outbound/', responses.calls)
-        self.assertEqual(sms01.request.body, json.dumps({
+        self.assertEqual(json.loads(sms01.request.body), {
             "content": (
                 "There is a new pregnancy in your parish. "
                 "Call +4321 and visit the mother to update her registration."),
             "to_addr": "+1234",
-            "metadata": {}}))
-        self.assertEqual(sms02.request.body, json.dumps({
+            "metadata": {}})
+        self.assertEqual(json.loads(sms02.request.body), {
             "content": (
                 "There is a new pregnancy in your parish. "
                 "Call +4321 and visit the mother to update her registration."),
             "to_addr": "+2234",
-            "metadata": {}}))
+            "metadata": {}})
 
     def test_validate_pbl_loss(self):
         # Setup
