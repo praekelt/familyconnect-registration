@@ -5,6 +5,7 @@ import json
 import uuid
 
 from django.conf import settings
+from django.db.models import Q
 from celery.task import Task
 from celery.utils.log import get_task_logger
 
@@ -339,3 +340,42 @@ def deliver_hook_wrapper(target, payload, instance, hook):
     kwargs = dict(target=target, payload=payload,
                   instance_id=instance_id, hook_id=hook.id)
     DeliverHook.apply_async(kwargs=kwargs)
+
+
+class SendLocationReminders(Task):
+    def send_location_reminder(self, recipient, language):
+        """
+        Sends a location reminder to the receiver specified by the registration
+        """
+        content = getattr(
+            settings,
+            'LOCATION_UPDATE_REMINDER_TEXT_{}'.format(language.upper()))
+        utils.post_message({
+            'to_addr': utils.get_identity_address(recipient),
+            'content': content,
+            'metadata': {},
+        })
+
+    def run(self, **kwargs):
+        """
+        Looks up registrations that don't have their location set, and sends
+        a reminder SMS to the receiver to update their location.
+        """
+        l = self.get_logger(**kwargs)
+        l.info("Looking up registrations that don't have locations")
+
+        registrations = Registration.objects \
+            .validated() \
+            .public_registrations() \
+            .filter(
+                ~Q(data__has_key='parish') |
+                Q(data__contains={'parish': None}) |
+                Q(data__contains={'parish': ""})
+            )
+
+        for registration in registrations:
+            self.send_location_reminder(
+                registration.data['receiver_id'],
+                registration.data['language'])
+
+send_location_reminders = SendLocationReminders()

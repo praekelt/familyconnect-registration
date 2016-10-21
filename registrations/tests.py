@@ -11,10 +11,15 @@ from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
 from rest_hooks.models import model_saved, Hook
 
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
+
 from .models import (Source, Registration, SubscriptionRequest,
                      registration_post_save)
 from .tasks import (
-    validate_registration,
+    validate_registration, send_location_reminders,
     is_valid_date, is_valid_uuid, is_valid_lang, is_valid_msg_type,
     is_valid_msg_receiver, is_valid_loss_reason, is_valid_name)
 from familyconnect_registration import utils
@@ -1277,3 +1282,74 @@ class TestRegistrationModel(AuthenticatedAPITestCase):
 
         [reg] = Registration.objects.public_registrations()
         self.assertEqual(reg.pk, r1.pk)
+
+
+class TestSendLocationRemindersTask(AuthenticatedAPITestCase):
+    @responses.activate
+    def test_send_location_reminder(self):
+        """
+        The send_location_reminder should send the correct message according
+        to the given recipient and language.
+        """
+        responses.add(
+            responses.POST,
+            'http://localhost:8006/api/v1/outbound/',
+            json={'id': 1})
+        responses.add(
+            responses.GET,
+            ('http://localhost:8001/api/v1/identities/%s/addresses/msisdn?'
+             'default=True') % 'mother01-63e2-4acc-9b94-26663b9bc267',
+            json={"results": [{"address": "+4321"}]},
+            match_querystring=True,
+        )
+
+        send_location_reminders.send_location_reminder(
+            'mother01-63e2-4acc-9b94-26663b9bc267', 'eng_UG')
+
+        sms_http_call = responses.calls[-1].request
+        self.assertEqual(sms_http_call.body, json.dumps({
+            "content": (
+                "To make sure you can receive care from your local VHT, please"
+                " dial in to *XXX*X# and add your location. FamilyConnect"),
+            "to_addr": "+4321",
+            "metadata": {}}))
+
+    def test_send_locations_task(self):
+        """
+        The send_locations_reminder task should look up registrations, and send
+        messages to the correct ones.
+        """
+        # Should be called
+        r1 = self.make_registration_normaluser()
+        r1.validated = True
+        r1.data['receiver_id'] = 'mother01-63e2-4acc-9b94-26663b9bc267'
+        r1.data['language'] = 'eng_UG'
+        r1.save()
+        # Not public, shouldn't be called
+        r2 = self.make_registration_adminuser()
+        self.assertEqual(r2.source.authority, 'hw_full')
+        # Should be called
+        r3 = self.make_registration_normaluser()
+        r3.validated = True
+        r3.data['receiver_id'] = 'mother03-63e2-4acc-9b94-26663b9bc267'
+        r3.data['language'] = 'cgg_UG'
+        r3.data['parish'] = None
+        r3.save()
+        # Not validated, shouldn't be called
+        r4 = self.make_registration_normaluser()
+        self.assertFalse(r4.validated)
+        # Has location, shouldn't be called
+        r5 = self.make_registration_normaluser()
+        r5.validated = True
+        r5.data['parish'] = 'Kawaaga'
+        r5.save()
+
+        with patch.object(send_location_reminders, 'send_location_reminder') \
+                as send_location_reminder:
+            send_location_reminders.run()
+
+        self.assertEqual(send_location_reminder.call_count, 2)
+        send_location_reminder.assert_any_call(
+            'mother01-63e2-4acc-9b94-26663b9bc267', 'eng_UG')
+        send_location_reminder.assert_any_call(
+            'mother03-63e2-4acc-9b94-26663b9bc267', 'cgg_UG')
