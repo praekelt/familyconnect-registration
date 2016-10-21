@@ -1248,3 +1248,32 @@ class TestSubscriptionRequestWebhook(AuthenticatedAPITestCase):
     #     self.assertEqual(d.schedule, 1)
     #     self.assertEqual(responses.calls[0].request.url,
     #                      "http://example.com/registration/")
+
+
+class TestRegistrationModel(AuthenticatedAPITestCase):
+    def test_validated_filter(self):
+        """
+        The validated queryset filter should only return validated
+        registrations.
+        """
+        r1 = self.make_registration_adminuser()
+        r1.validated = True
+        r1.save()
+        r2 = self.make_registration_adminuser()
+        self.assertFalse(r2.validated)
+
+        [reg] = Registration.objects.validated()
+        self.assertEqual(reg.pk, r1.pk)
+
+    def test_public_registrations_filter(self):
+        """
+        The public registrations filter should only return registrations
+        make through public sources.
+        """
+        r1 = self.make_registration_normaluser()
+        self.assertEqual(r1.source.authority, 'patient')
+        r2 = self.make_registration_adminuser()
+        self.assertEqual(r2.source.authority, 'hw_full')
+
+        [reg] = Registration.objects.public_registrations()
+        self.assertEqual(reg.pk, r1.pk)
