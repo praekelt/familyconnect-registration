@@ -1,10 +1,14 @@
 from django.contrib.auth.models import User
+from django.test import TestCase
 from django.urls import reverse
+import responses
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
+from seed_services_client import IdentityStoreApiClient
 
 from .models import Parish
+from .tasks import sync_locations
 
 
 class TestLocations(APITestCase):
@@ -77,3 +81,99 @@ class TestLocations(APITestCase):
         response = self.client.get(reverse('locations-list'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['results'], [])
+
+
+class TestTasks(TestCase):
+    identity_list_page_one = {
+        'next':
+            'http://localhost:8001/api/v1/identities/?limit=2&offset=2',
+        'results': [
+            {'details': {'parish': 'Kawaaga'}},
+            {'details': {}},
+        ],
+    }
+
+    identity_list_page_two = {
+        'next': None,
+        'results': [
+            {'details': {'parish': 'Naluwoli'}},
+            {'details': {'parish': 'Kawaaga'}},
+        ],
+    }
+
+    identity_list_caps = {
+        'next': None,
+        'results': [
+            {'details': {'parish': 'naluwoli'}},
+            {'details': {'parish': 'KAWAAGA'}},
+        ],
+    }
+
+    @responses.activate
+    def test_sync_locations_get_identities(self):
+        """
+        get_identities should iterate through the identities, even if split
+        over multiple pages.
+        """
+        responses.add(
+            responses.GET, 'http://localhost:8001/api/v1/identities/',
+            json=self.identity_list_page_one, match_querystring=True
+        )
+        responses.add(
+            responses.GET,
+            'http://localhost:8001/api/v1/identities/?limit=2&offset=2',
+            json=self.identity_list_page_two, match_querystring=True
+        )
+
+        client = IdentityStoreApiClient('foo', 'http://localhost:8001/api/v1')
+        identities = list(sync_locations.get_identities(client))
+        self.assertEqual(identities, [
+            {'details': {'parish': 'Kawaaga'}},
+            {'details': {}},
+            {'details': {'parish': 'Naluwoli'}},
+            {'details': {'parish': 'Kawaaga'}},
+        ])
+
+    @responses.activate
+    def test_sync_locations_creates_objects(self):
+        """
+        Running the sync_locations task should create the applicable locations
+        """
+        responses.add(
+            responses.GET, 'http://localhost:8001/api/v1/identities/',
+            json=self.identity_list_page_one, match_querystring=True
+        )
+        responses.add(
+            responses.GET,
+            'http://localhost:8001/api/v1/identities/?limit=2&offset=2',
+            json=self.identity_list_page_two, match_querystring=True
+        )
+
+        self.assertEqual(Parish.objects.count(), 0)
+
+        result = sync_locations.apply_async()
+
+        self.assertEqual(int(result.get()), 2)
+        self.assertEqual(Parish.objects.count(), 2)
+        self.assertTrue(Parish.objects.filter(name='Kawaaga').exists())
+        self.assertTrue(Parish.objects.filter(name='Naluwoli').exists())
+
+    @responses.activate
+    def test_sync_locations_name_normalised(self):
+        """
+        When syncing locations, the names of the locations should be synced
+        to title case.
+        """
+        responses.add(
+            responses.GET, 'http://localhost:8001/api/v1/identities/',
+            json=self.identity_list_caps, match_querystring=True
+        )
+
+        self.assertEqual(Parish.objects.count(), 0)
+
+        result = sync_locations.apply_async()
+
+        self.assertEqual(int(result.get()), 2)
+        self.assertEqual(Parish.objects.count(), 2)
+        self.assertTrue(Parish.objects.filter(name='Kawaaga').exists())
+        self.assertTrue(Parish.objects.filter(name='Naluwoli').exists())
