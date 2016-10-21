@@ -26,6 +26,8 @@ setup(
         'django-rest-hooks==1.3.1',
         'requests==2.9.1',
         'django-filter==0.12.0',
+        'seed-services-client==0.9.0',
+        'future==0.15.2',
     ],
     classifiers=[
         'Development Status :: 4 - Beta',

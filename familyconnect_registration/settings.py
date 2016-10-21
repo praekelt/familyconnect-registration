@@ -7,7 +7,9 @@ https://docs.djangoproject.com/en/1.9/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.9/ref/settings/
 """
+from __future__ import absolute_import
 
+from celery.schedules import crontab
 from kombu import Exchange, Queue
 
 import os
@@ -178,7 +180,8 @@ CELERY_ALWAYS_EAGER = False
 # Tell Celery where to find the tasks
 CELERY_IMPORTS = (
     'registrations.tasks',
-    'changes.tasks'
+    'changes.tasks',
+    'locations.tasks',
 )
 
 CELERY_CREATE_MISSING_QUEUES = True
@@ -195,7 +198,18 @@ CELERY_ROUTES = {
     'registrations.tasks.DeliverHook': {
         'queue': 'priority',
     },
+    'locations.tasks.sync_locations': {
+        'queue': 'mediumpriority',
+    },
 }
+
+CELERYBEAT_SCHEDULE = {
+    'sync-locations-every-day': {
+        'task': 'locations.tasks.sync_locations',
+        'schedule': crontab(minute=0, hour=0),
+    },
+}
+
 
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
