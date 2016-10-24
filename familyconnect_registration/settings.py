@@ -201,12 +201,19 @@ CELERY_ROUTES = {
     'locations.tasks.sync_locations': {
         'queue': 'mediumpriority',
     },
+    'registrations.tasks.send_location_reminders': {
+        'queue': 'mediumpriority',
+    },
 }
 
 CELERYBEAT_SCHEDULE = {
     'sync-locations-every-day': {
         'task': 'locations.tasks.sync_locations',
         'schedule': crontab(minute=0, hour=0),
+    },
+    'send-location-update-reminders-every-week': {
+        'task': 'registrations.tasks.send_location_reminders',
+        'schedule': crontab(minute=0, hour=12, day_of_week='sunday'),
     },
 }
 
@@ -243,3 +250,19 @@ VHT_PUBLIC_REGISTRATION_NOTIFICATION_TEXT = os.environ.get(
     'VHT_PUBLIC_REGISTRATION_NOTIFICATION_TEXT', "There is a new pregnancy in "
     "your parish. Call {mother} and visit the mother to update her "
     "registration.")
+LOCATION_UPDATE_REMINDER_TEXT_ENG_UG = os.environ.get(
+    'LOCATION_UPDATE_REMINDER_TEXT_ENG_UG', 'To make sure you can receive '
+    'care from your local VHT, please dial in to *XXX*X# and add your '
+    'location. FamilyConnect')
+LOCATION_UPDATE_REMINDER_TEXT_CGG_UG = os.environ.get(
+    'LOCATION_UPDATE_REMINDER_TEXT_CGG_UG', 'To make sure you can receive '
+    'care from your local VHT, please dial in to *XXX*X# and add your '
+    'location. FamilyConnect')
+LOCATION_UPDATE_REMINDER_TEXT_XOG_UG = os.environ.get(
+    'LOCATION_UPDATE_REMINDER_TEXT_XOG_UG', 'To make sure you can receive '
+    'care from your local VHT, please dial in to *XXX*X# and add your '
+    'location. FamilyConnect')
+LOCATION_UPDATE_REMINDER_TEXT_LUG_UG = os.environ.get(
+    'LOCATION_UPDATE_REMINDER_TEXT_LUG_UG', 'To make sure you can receive '
+    'care from your local VHT, please dial in to *XXX*X# and add your '
+    'location. FamilyConnect')

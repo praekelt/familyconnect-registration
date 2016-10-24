@@ -31,6 +31,22 @@ class Source(models.Model):
         return "%s" % self.name
 
 
+class RegistrationQuerySet(models.QuerySet):
+    def public_registrations(self):
+        """
+        Returns all registrations that were done on the public line.
+        """
+        return self.filter(
+            stage='prebirth',
+            source__authority__in=['patient', 'advisor'])
+
+    def validated(self):
+        """
+        Returns only validated registrations.
+        """
+        return self.filter(validated=True)
+
+
 @python_2_unicode_compatible
 class Registration(models.Model):
     """ A registation submitted via Vumi or other sources.
@@ -68,6 +84,8 @@ class Registration(models.Model):
     updated_by = models.ForeignKey(User, related_name='registrations_updated',
                                    null=True)
     user = property(lambda self: self.created_by)
+
+    objects = RegistrationQuerySet.as_manager()
 
     def __str__(self):
         return str(self.id)
