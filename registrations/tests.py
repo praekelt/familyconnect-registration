@@ -86,12 +86,14 @@ REG_DATA = {
     },
     "pbl_pre": {
         "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
-        "receiver_id": "friend01-63e2-4acc-9b94-26663b9bc267",
+        "receiver_id": "mother01-63e2-4acc-9b94-26663b9bc267",
         "operator_id": None,
         "language": "eng_UG",
         "msg_type": "text",
         "last_period_date": "20150202",
-        "msg_receiver": "trusted_friend"
+        "msg_receiver": "mother_to_be",
+        "parish": "Kawaaga",
+        "vht_id": "vht00001-63e2-4acc-9b94-26663b9bc267"
     },
     "pbl_loss": {
         "hoh_id": "hoh00001-63e2-4acc-9b94-26663b9bc267",
@@ -762,7 +764,8 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         self.assertEqual(registration.data["preg_week"], 28)
         self.assertEqual(registration.validated, True)
 
-    def test_validate_pbl_prebirth(self):
+    @responses.activate
+    def test_validate_pbl_prebirth_vht(self):
         # Setup
         registration_data = {
             "stage": "prebirth",
@@ -771,6 +774,36 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
             "source": self.make_source_normaluser()
         }
         registration = Registration.objects.create(**registration_data)
+
+        # mock vht identity lookup
+        responses.add(
+            responses.GET,
+            'http://localhost:8001/api/v1/identities/%s/' % registration_data[
+                "data"]["vht_id"],
+            json={"id": "vht00001-63e2-4acc-9b94-26663b9bc267"}
+        )
+        # mock mother address lookup
+        responses.add(
+            responses.GET,
+            ('http://localhost:8001/api/v1/identities/%s/addresses/msisdn?'
+             'default=True') % registration_data["mother_id"],
+            json={"results": [{"address": "+4321"}]},
+            match_querystring=True,
+        )
+        # mock vht address lookup
+        responses.add(
+            responses.GET,
+            ('http://localhost:8001/api/v1/identities/%s/addresses/msisdn?'
+             'default=True') % registration_data["data"]["vht_id"],
+            json={"results": [{"address": "+1234"}]},
+            match_querystring=True,
+        )
+        # moch message send
+        responses.add(
+            responses.POST,
+            'http://localhost:8006/api/v1/outbound/',
+            json={'id': 1})
+
         # Execute
         v = validate_registration.validate(registration)
         # Check
@@ -778,6 +811,91 @@ class TestRegistrationValidation(AuthenticatedAPITestCase):
         self.assertEqual(registration.data["reg_type"], "pbl_pre")
         self.assertEqual(registration.data["preg_week"], 28)
         self.assertEqual(registration.validated, True)
+        sms_http_call = responses.calls[-1].request
+        self.assertEqual(json.loads(sms_http_call.body), {
+            "content": (
+                "There is a new pregnancy in your parish. "
+                "Call +4321 and visit the mother to update her registration."),
+            "to_addr": "+1234",
+            "metadata": {}})
+
+    @responses.activate
+    def test_validate_pbl_prebirth_location(self):
+        # Setup
+        data = REG_DATA["pbl_pre"].copy()
+        data.pop('vht_id')
+        registration_data = {
+            "stage": "prebirth",
+            "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
+            "data": data,
+            "source": self.make_source_normaluser()
+        }
+        registration = Registration.objects.create(**registration_data)
+
+        # mock vht identities lookup
+        responses.add(
+            responses.GET,
+            'http://localhost:8001/api/v1/identities/search?details__has_key'
+            '=personnel_code&details_parish=%s' % registration_data[
+                "data"]["parish"],
+            json={"results": [
+                {"id": "vht00001-63e2-4acc-9b94-26663b9bc267"},
+                {"id": "vht00002-63e2-4acc-9b94-26663b9bc267"},
+            ]},
+            match_querystring=True,
+        )
+        # mock mother address lookup
+        responses.add(
+            responses.GET,
+            ('http://localhost:8001/api/v1/identities/%s/addresses/msisdn?'
+             'default=True') % registration_data["mother_id"],
+            json={"results": [{"address": "+4321"}]},
+            match_querystring=True,
+        )
+        # mock vht1 address lookup
+        responses.add(
+            responses.GET,
+            'http://localhost:8001/api/v1/identities/vht00001-63e2-4acc-9b94'
+            '-26663b9bc267/addresses/msisdn?default=True',
+            json={"results": [{"address": "+1234"}]},
+            match_querystring=True,
+        )
+        # mock vht2 address lookup
+        responses.add(
+            responses.GET,
+            'http://localhost:8001/api/v1/identities/vht00002-63e2-4acc-9b94'
+            '-26663b9bc267/addresses/msisdn?default=True',
+            json={"results": [{"address": "+2234"}]},
+            match_querystring=True,
+        )
+        # moch message send
+        responses.add(
+            responses.POST,
+            'http://localhost:8006/api/v1/outbound/',
+            json={'id': 1})
+
+        # Execute
+        v = validate_registration.validate(registration)
+        # Check
+        self.assertEqual(v, True)
+        self.assertEqual(registration.data["reg_type"], "pbl_pre")
+        self.assertEqual(registration.data["preg_week"], 28)
+        self.assertEqual(registration.validated, True)
+        [sms01, sms02] = filter(
+            lambda r: r.request.url == 'http://localhost:8006/api/v1/'
+            'outbound/', responses.calls)
+        self.assertEqual(json.loads(sms01.request.body), {
+            "content": (
+                "There is a new pregnancy in your parish. "
+                "Call +4321 and visit the mother to update her registration."),
+            "to_addr": "+1234",
+            "metadata": {}})
+        self.assertEqual(json.loads(sms02.request.body), {
+            "content": (
+                "There is a new pregnancy in your parish. "
+                "Call +4321 and visit the mother to update her registration."),
+            "to_addr": "+2234",
+            "metadata": {}})
 
     def test_validate_pbl_loss(self):
         # Setup
