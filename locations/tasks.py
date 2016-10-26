@@ -14,6 +14,8 @@ class SyncLocations(Task):
     Has a look at all the identity store identities, and ensures that all of
     the locations assigned to identities appear in the list of locations.
     """
+    name = 'locations.tasks.sync_locations'
+
     def get_identities(self, client):
         """
         Returns an iterator over all the identities in the identity store

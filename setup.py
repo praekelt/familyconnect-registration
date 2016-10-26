@@ -18,7 +18,7 @@ setup(
         'gunicorn==19.4.5',
         'django-filter==0.12.0',
         'whitenoise==2.0.6',
-        'celery==3.1.19',
+        'celery==3.1.24',
         'django-celery==3.1.17',
         'redis==2.10.5',
         'pytz==2015.7',
