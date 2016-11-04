@@ -351,7 +351,7 @@ class TestRecordTasks(AuthenticatedAPITestCase):
                 },
                 "receiver_role": "mother",
                 "preferred_language": "eng_UG",
-                "unique_id": 1234567890
+                "unique_id": "1234567890"
             }
         }
         responses.add(
