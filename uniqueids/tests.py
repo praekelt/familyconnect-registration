@@ -112,6 +112,42 @@ class TestRecordCreation(AuthenticatedAPITestCase):
         # Check
         self.assertEqual(Record.objects.all().count(), 2)
 
+    def test_record_create_unique_five_digit_from_str(self):
+        # Setup
+        data = {
+            "identity": "9d02ae1a-16e4-4674-abdc-daf9cce9c52d",
+            "write_to": "health_id",
+            "length": "5"
+        }
+        # Execute
+        Record.objects.create(**data)
+        # Check
+        d = Record.objects.last()
+        self.assertIsNotNone(d.id)
+        self.assertEqual(len(str(d.id)), 5)
+        self.assertEqual(str(d.identity),
+                         "9d02ae1a-16e4-4674-abdc-daf9cce9c52d")
+        self.assertEqual(d.length, 5)
+        self.assertEqual(d.write_to, "health_id")
+
+    def test_record_create_unique_five_digit_from_int(self):
+        # Setup
+        data = {
+            "identity": "9d02ae1a-16e4-4674-abdc-daf9cce9c52d",
+            "write_to": "health_id",
+            "length": 5
+        }
+        # Execute
+        Record.objects.create(**data)
+        # Check
+        d = Record.objects.last()
+        self.assertIsNotNone(d.id)
+        self.assertEqual(len(str(d.id)), 5)
+        self.assertEqual(str(d.identity),
+                         "9d02ae1a-16e4-4674-abdc-daf9cce9c52d")
+        self.assertEqual(d.length, 5)
+        self.assertEqual(d.write_to, "health_id")
+
 
 class TestRecordAPI(AuthenticatedAPITestCase):
 
