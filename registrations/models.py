@@ -115,7 +115,6 @@ def fire_created_metric(sender, instance, created, **kwargs):
         total = get_or_incr_cache(
             total_key,
             Registration.objects.count)
-        print total_key, total, Registration.objects.count()
         fire_metric.apply_async(kwargs={
             'metric_name': total_key,
             'metric_value': total,
@@ -128,10 +127,8 @@ def get_or_incr_cache(key, func):
     in the cache, run the function to get a value to use to populate the cache
     """
     value = cache.get(key)
-    print 1, value
     if value is None:
         value = func()
-        print 2, value
         cache.set(key, value)
     else:
         cache.incr(key)
