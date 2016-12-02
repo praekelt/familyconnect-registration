@@ -513,7 +513,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
         # Setup
         registration1 = self.make_registration_normaluser()
         registration2 = self.make_registration_adminuser()
-        print registration1.id, registration2.id
+
         # Execute
         response = self.normalclient.get(
             '/api/v1/registrations/', content_type='application/json')
@@ -521,7 +521,6 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 2)
         result1, result2 = response.data["results"]
-        print result1["id"], result2["id"]
         self.assertEqual(result1["id"], str(registration1.id))
         self.assertEqual(result2["id"], str(registration2.id))
 
