@@ -217,10 +217,16 @@ CELERYBEAT_SCHEDULE = {
     },
 }
 
+LANGUAGES = ["eng_UG", "cgg_UG"]
+
 METRICS_REALTIME = [
     'registrations.created.sum',
     'registrations.created.total.last',
 ]
+METRICS_REALTIME.extend(
+    ['registrations.language.%s.sum' % l for l in LANGUAGES])
+METRICS_REALTIME.extend(
+    ['registrations.language.%s.total.last' % l for l in LANGUAGES])
 
 METRICS_AUTH_TOKEN = os.environ.get("METRICS_AUTH_TOKEN", "REPLACEME")
 METRICS_URL = os.environ.get("METRICS_URL", None)
