@@ -1526,7 +1526,6 @@ class TestMetrics(AuthenticatedAPITestCase):
         self.make_registration_adminuser()
         self.make_registration_adminuser()
 
-        print adapter.requests
         [r_sum1, r_total1, r_sum2, r_total2] = adapter.requests
         self._check_request(
             r_sum1, 'POST',
