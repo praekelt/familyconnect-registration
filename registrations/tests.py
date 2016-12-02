@@ -213,12 +213,6 @@ class AuthenticatedAPITestCase(APITestCase):
             api_url=settings.METRICS_URL,
             session=self.session)
 
-    def _restore_get_metric_client(self, session=None):
-        return MetricsApiClient(
-            auth_token=settings.METRICS_AUTH_TOKEN,
-            api_url=settings.METRICS_URL,
-            session=session)
-
     def make_source_adminuser(self):
         data = {
             "name": "test_source_adminuser",

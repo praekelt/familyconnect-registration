@@ -221,10 +221,6 @@ METRICS_REALTIME = [
     'registrations.created.sum',
     'registrations.created.total.last',
 ]
-METRICS_SCHEDULED = [
-]
-METRICS_SCHEDULED_TASKS = [
-]
 
 METRICS_AUTH_TOKEN = os.environ.get("METRICS_AUTH_TOKEN", "REPLACEME")
 METRICS_URL = os.environ.get("METRICS_URL", None)
