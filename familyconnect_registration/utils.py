@@ -1,6 +1,7 @@
 import datetime
 import requests
 import json
+import re
 
 from django.conf import settings
 
@@ -194,3 +195,25 @@ def post_message(payload):
     )
     result.raise_for_status()
     return result.json()
+
+
+def get_available_metrics():
+    available_metrics = []
+    available_metrics.extend(settings.METRICS_REALTIME)
+
+    return available_metrics
+
+
+def normalise_string(string):
+    """ Strips trailing whitespace from string, lowercases it and replaces
+        spaces with underscores
+    """
+    string = (string.strip()).lower()
+    return re.sub(r'\W+', '_', string)
+
+
+def timestamp_to_epoch(timestamp):
+    """
+    Takes a timestamp and returns a float representing the unix epoch time.
+    """
+    return (timestamp - datetime.datetime.utcfromtimestamp(0)).total_seconds()

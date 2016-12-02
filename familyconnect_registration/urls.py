@@ -7,6 +7,7 @@ from registrations import urls as registration_urls
 from changes import urls as changes_urls
 from uniqueids import urls as uniqueids_urls
 from locations import urls as locations_urls
+from registrations import views
 
 admin.site.site_header = os.environ.get('REGISTRATIONS_TITLE',
                                         'FamilyConnect Registration Admin')
@@ -27,6 +28,7 @@ urlpatterns = [
     url(r'^api/auth/',
         include('rest_framework.urls', namespace='rest_framework')),
     url(r'^api/token-auth/', rest_framework.authtoken.views.obtain_auth_token),
+    url(r'^api/metrics/', views.MetricsView.as_view()),
     url(r'^api/v1/', include(router.urls)),
     url(r'^', include('registrations.urls')),
     url(r'^', include('changes.urls')),

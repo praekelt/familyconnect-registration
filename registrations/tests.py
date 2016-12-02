@@ -1,32 +1,55 @@
 ﻿import json
 import uuid
-import datetime
+from datetime import timedelta, datetime
 import responses
 
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.db.models.signals import post_save
+from django.conf import settings
 from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
 from rest_hooks.models import model_saved, Hook
+from requests_testadapter import TestAdapter, TestSession
+from go_http.metrics import MetricsApiClient
+
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    from urlparse import urlparse
 
 try:
     from unittest.mock import patch
 except ImportError:
     from mock import patch
 
+from registrations import tasks
 from .models import (Source, Registration, SubscriptionRequest,
-                     registration_post_save)
+                     registration_post_save, fire_created_metric)
 from .tasks import (
     validate_registration, send_location_reminders,
     is_valid_date, is_valid_uuid, is_valid_lang, is_valid_msg_type,
-    is_valid_msg_receiver, is_valid_loss_reason, is_valid_name)
+    is_valid_msg_receiver, is_valid_loss_reason, is_valid_name,
+    repopulate_metrics)
 from familyconnect_registration import utils
 
 
 def override_get_today():
-    return datetime.datetime.strptime("20150817", "%Y%m%d")
+    return datetime.strptime("20150817", "%Y%m%d")
+
+
+class RecordingAdapter(TestAdapter):
+
+    """ Record the request that was handled by the adapter.
+    """
+    def __init__(self, *args, **kwargs):
+        self.requests = []
+        super(RecordingAdapter, self).__init__(*args, **kwargs)
+
+    def send(self, request, *args, **kw):
+        self.requests.append(request)
+        return super(RecordingAdapter, self).send(request, *args, **kw)
 
 
 REG_FIELDS = {
@@ -154,6 +177,7 @@ class APITestCase(TestCase):
         self.adminclient = APIClient()
         self.normalclient = APIClient()
         self.otherclient = APIClient()
+        self.session = TestSession()
         utils.get_today = override_get_today
 
 
@@ -169,6 +193,7 @@ class AuthenticatedAPITestCase(APITestCase):
                              sender=Registration)
         post_save.disconnect(receiver=model_saved,
                              dispatch_uid='instance-saved-hook')
+        post_save.disconnect(receiver=fire_created_metric, sender=Registration)
         assert not has_listeners(), (
             "Registration model still has post_save listeners. Make sure"
             " helpers cleaned up properly in earlier tests.")
@@ -180,6 +205,13 @@ class AuthenticatedAPITestCase(APITestCase):
             "Registration model still has post_save listeners. Make sure"
             " helpers removed them properly in earlier tests.")
         post_save.connect(registration_post_save, sender=Registration)
+        post_save.connect(receiver=fire_created_metric, sender=Registration)
+
+    def _replace_get_metric_client(self, session=None):
+        return MetricsApiClient(
+            auth_token=settings.METRICS_AUTH_TOKEN,
+            api_url=settings.METRICS_URL,
+            session=self.session)
 
     def make_source_adminuser(self):
         data = {
@@ -218,6 +250,7 @@ class AuthenticatedAPITestCase(APITestCase):
     def setUp(self):
         super(AuthenticatedAPITestCase, self).setUp()
         self._replace_post_save_hooks()
+        tasks.get_metric_client = self._replace_get_metric_client
 
         # Normal User setup
         self.normalusername = 'testnormaluser'
@@ -1353,3 +1386,175 @@ class TestSendLocationRemindersTask(AuthenticatedAPITestCase):
             'mother01-63e2-4acc-9b94-26663b9bc267', 'eng_UG')
         send_location_reminder.assert_any_call(
             'mother03-63e2-4acc-9b94-26663b9bc267', 'cgg_UG')
+
+
+class TestMetricsAPI(AuthenticatedAPITestCase):
+
+    def test_metrics_read(self):
+        # Setup
+        self.make_source_normaluser()
+        self.make_source_adminuser()
+        # Execute
+        response = self.adminclient.get(
+            '/api/metrics/', content_type='application/json')
+        # Check
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            sorted(response.data["metrics_available"]), sorted([
+                'registrations.created.sum',
+                'registrations.created.total.last',
+            ])
+        )
+
+    @responses.activate
+    def test_post_metrics(self):
+        # Setup
+        # deactivate Testsession for this test
+        self.session = None
+        responses.add(responses.POST,
+                      "http://metrics-url/metrics/",
+                      json={"foo": "bar"},
+                      status=200, content_type='application/json')
+        # Execute
+        response = self.adminclient.post(
+            '/api/metrics/', content_type='application/json')
+        # Check
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["scheduled_metrics_initiated"], True)
+
+
+class TestMetrics(AuthenticatedAPITestCase):
+
+    def _check_request(
+            self, request, method, params=None, data=None, headers=None):
+        self.assertEqual(request.method, method)
+        if params is not None:
+            url = urlparse.urlparse(request.url)
+            qs = urlparse.parse_qsl(url.query)
+            self.assertEqual(dict(qs), params)
+        if headers is not None:
+            for key, value in headers.items():
+                self.assertEqual(request.headers[key], value)
+        if data is None:
+            self.assertEqual(request.body, None)
+        else:
+            self.assertEqual(json.loads(request.body), data)
+
+    def _mount_session(self):
+        response = [{
+            'name': 'foo',
+            'value': 9000,
+            'aggregator': 'bar',
+        }]
+        adapter = RecordingAdapter(json.dumps(response).encode('utf-8'))
+        self.session.mount(
+            "http://metrics-url/metrics/", adapter)
+        return adapter
+
+    def test_direct_fire(self):
+        # Setup
+        adapter = self._mount_session()
+        # Execute
+        result = tasks.fire_metric.apply_async(kwargs={
+            "metric_name": 'foo.last',
+            "metric_value": 1,
+            "session": self.session
+        })
+        # Check
+        [request] = adapter.requests
+        self._check_request(
+            request, 'POST',
+            data={"foo.last": 1.0}
+        )
+        self.assertEqual(result.get(),
+                         "Fired metric <foo.last> with value <1.0>")
+
+    def test_created_metric(self):
+        # Setup
+        adapter = self._mount_session()
+        # reconnect metric post_save hook
+        post_save.connect(fire_created_metric, sender=Registration)
+
+        # Execute
+        self.make_registration_adminuser()
+        self.make_registration_adminuser()
+
+        # Check
+        [request1, request2, request3, request4] = adapter.requests
+        self._check_request(
+            request1, 'POST',
+            data={"registrations.created.sum": 1.0}
+        )
+        self._check_request(
+            request2, 'POST',
+            data={"registrations.created.total.last": 1}
+        )
+        self._check_request(
+            request3, 'POST',
+            data={"registrations.created.sum": 1.0}
+        )
+        self._check_request(
+            request4, 'POST',
+            data={"registrations.created.total.last": 2}
+        )
+        # remove post_save hooks to prevent teardown errors
+        post_save.disconnect(fire_created_metric, sender=Registration)
+
+
+class TestRepopulateMetricsTask(TestCase):
+    @patch('registrations.tasks.pika')
+    @patch('registrations.tasks.RepopulateMetrics.generate_and_send')
+    def test_run_repopulate_metrics(self, mock_repopulate, mock_pika):
+        """
+        The repopulate metrics task should create an amqp connection, and call
+        generate_and_send with the appropriate parameters.
+        """
+        repopulate_metrics.delay(
+            'amqp://test', 'prefix', ['metric.foo', 'metric.bar'], '30s:1m')
+        args = [args for args, _ in mock_repopulate.call_args_list]
+
+        # Relative instead of absolute times
+        start = min(args, key=lambda a: a[3])[3]
+        args = [[a, p, m, s-start, e-start] for a, p, m, s, e in args]
+
+        connection = mock_pika.BlockingConnection.return_value
+        channel = connection.channel.return_value
+        expected = [
+            [channel, 'prefix', 'metric.foo',
+                timedelta(seconds=0), timedelta(seconds=30)],
+            [channel, 'prefix', 'metric.foo',
+                timedelta(seconds=30), timedelta(seconds=60)],
+            [channel, 'prefix', 'metric.bar',
+                timedelta(seconds=0), timedelta(seconds=30)],
+            [channel, 'prefix', 'metric.bar',
+                timedelta(seconds=30), timedelta(seconds=60)],
+        ]
+
+        self.assertEqual(sorted(expected), sorted(args))
+
+        # Assert that the amqp parameters were set from the correc url
+        [url], _ = mock_pika.URLParameters.call_args
+        self.assertEqual(url, 'amqp://test')
+        # Assert that the connection was created with the generated parameters
+        [parameters], _ = mock_pika.BlockingConnection.call_args
+        self.assertEqual(parameters, mock_pika.URLParameters.return_value)
+
+    @patch('registrations.tasks.MetricGenerator.generate_metric')
+    @patch('registrations.tasks.send_metric')
+    def test_generate_and_send(
+            self, mock_send_metric, mock_metric_generator):
+        """
+        The generate_and_send function should use the metric generator to
+        generate the appropriate metric, then send that metric to Graphite.
+        """
+        mock_metric_generator.return_value = 17.2
+        repopulate_metrics.generate_and_send(
+            'amqp://foo', 'prefix', 'foo.bar',
+            datetime.utcfromtimestamp(300.0), datetime.utcfromtimestamp(500.0))
+
+        mock_metric_generator.assert_called_once_with(
+            'foo.bar', datetime.utcfromtimestamp(300),
+            datetime.utcfromtimestamp(500))
+        mock_send_metric.assert_called_once_with(
+            'amqp://foo', 'prefix', 'foo.bar', 17.2,
+            datetime.utcfromtimestamp(400))
