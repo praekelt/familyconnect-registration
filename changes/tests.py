@@ -13,7 +13,7 @@ from rest_hooks.models import model_saved
 
 from familyconnect_registration import utils
 from registrations.models import (Source, Registration, SubscriptionRequest,
-                                  registration_post_save)
+                                  registration_post_save, fire_created_metric)
 from .models import Change, change_post_save
 from .tasks import implement_action
 
@@ -65,6 +65,7 @@ class AuthenticatedAPITestCase(APITestCase):
                              sender=Registration)
         post_save.disconnect(receiver=model_saved,
                              dispatch_uid='instance-saved-hook')
+        post_save.disconnect(receiver=fire_created_metric, sender=Registration)
         assert not has_listeners(), (
             "Registration model still has post_save listeners. Make sure"
             " helpers cleaned up properly in earlier tests.")
@@ -76,6 +77,7 @@ class AuthenticatedAPITestCase(APITestCase):
             "Registration model still has post_save listeners. Make sure"
             " helpers removed them properly in earlier tests.")
         post_save.connect(registration_post_save, sender=Registration)
+        post_save.connect(receiver=fire_created_metric, sender=Registration)
 
     def make_source_adminuser(self):
         data = {

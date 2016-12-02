@@ -4,13 +4,17 @@ import requests
 import json
 import uuid
 
+import pika
 from django.conf import settings
 from django.db.models import Q
 from celery.task import Task
 from celery.utils.log import get_task_logger
+from go_http.metrics import MetricsApiClient
 
 from .models import Registration, SubscriptionRequest
 from familyconnect_registration import utils
+from .graphite import RetentionScheme
+from .metrics import MetricGenerator, send_metric
 
 
 logger = get_task_logger(__name__)
@@ -379,3 +383,63 @@ class SendLocationReminders(Task):
                 registration.data['language'])
 
 send_location_reminders = SendLocationReminders()
+
+
+def get_metric_client(session=None):
+    return MetricsApiClient(
+        auth_token=settings.METRICS_AUTH_TOKEN,
+        api_url=settings.METRICS_URL,
+        session=session)
+
+
+class FireMetric(Task):
+
+    """ Fires a metric using the MetricsApiClient
+    """
+    name = "hellomama_registration.tasks.fire_metric"
+
+    def run(self, metric_name, metric_value, session=None, **kwargs):
+        metric_value = float(metric_value)
+        metric = {
+            metric_name: metric_value
+        }
+        metric_client = get_metric_client(session=session)
+        metric_client.fire(metric)
+        return "Fired metric <%s> with value <%s>" % (
+            metric_name, metric_value)
+
+fire_metric = FireMetric()
+
+
+class RepopulateMetrics(Task):
+    """
+    Repopulates historical metrics.
+    """
+    name = 'registrations.tasks.repopulate_metrics'
+
+    def generate_and_send(
+            self, amqp_url, prefix, metric_name, start, end):
+        """
+        Generates the value for the specified metric, and sends it.
+        """
+        value = MetricGenerator().generate_metric(metric_name, start, end)
+
+        timestamp = start + (end - start) / 2
+        send_metric(amqp_url, prefix, metric_name, value, timestamp)
+
+    def run(
+            self, amqp_url, prefix, metric_names, graphite_retentions,
+            **kwargs):
+        parameters = pika.URLParameters(amqp_url)
+        connection = pika.BlockingConnection(parameters)
+        amqp_channel = connection.channel()
+
+        ret = RetentionScheme(graphite_retentions)
+        for start, end in ret.get_buckets():
+            for metric in metric_names:
+                self.generate_and_send(
+                    amqp_channel, prefix, metric, start, end)
+
+        connection.close()
+
+repopulate_metrics = RepopulateMetrics()

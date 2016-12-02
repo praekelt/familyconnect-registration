@@ -3,6 +3,7 @@ import uuid
 from django.contrib.postgres.fields import JSONField
 from django.contrib.auth.models import User
 from django.db import models
+from django.core.cache import cache
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils.encoding import python_2_unicode_compatible
@@ -99,6 +100,43 @@ def registration_post_save(sender, instance, created, **kwargs):
         from .tasks import validate_registration
         validate_registration.apply_async(
             kwargs={"registration_id": str(instance.id)})
+
+
+@receiver(post_save, sender=Registration)
+def fire_created_metric(sender, instance, created, **kwargs):
+    from .tasks import fire_metric
+    if created:
+        fire_metric.apply_async(kwargs={
+            "metric_name": 'registrations.created.sum',
+            "metric_value": 1.0
+        })
+
+        total_key = 'registrations.created.total.last'
+        total = get_or_incr_cache(
+            total_key,
+            Registration.objects.count)
+        print total_key, total, Registration.objects.count()
+        fire_metric.apply_async(kwargs={
+            'metric_name': total_key,
+            'metric_value': total,
+        })
+
+
+def get_or_incr_cache(key, func):
+    """
+    Used to either get a value from the cache, or if the value doesn't exist
+    in the cache, run the function to get a value to use to populate the cache
+    """
+    value = cache.get(key)
+    print 1, value
+    if value is None:
+        value = func()
+        print 2, value
+        cache.set(key, value)
+    else:
+        cache.incr(key)
+        value += 1
+    return value
 
 
 @python_2_unicode_compatible
