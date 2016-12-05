@@ -121,6 +121,31 @@ def fire_created_metric(sender, instance, created, **kwargs):
         })
 
 
+@receiver(post_save, sender=Registration)
+def fire_language_metric(sender, instance, created, **kwargs):
+    """
+    Fires metrics for each language for each subscription, a sum metric for
+    the registrations over time, and a last metric for the total count.
+    """
+    from .tasks import fire_metric, is_valid_lang
+    if (created and instance.data and instance.data.get('language') and
+            is_valid_lang(instance.data['language'])):
+        lang = instance.data['language']
+        fire_metric.apply_async(kwargs={
+            'metric_name': "registrations.language.%s.sum" % lang,
+            'metric_value': 1.0,
+        })
+
+        total_key = "registrations.language.%s.total.last" % lang
+        total = get_or_incr_cache(
+            total_key,
+            Registration.objects.filter(data__language=lang).count)
+        fire_metric.apply_async(kwargs={
+            'metric_name': total_key,
+            'metric_value': total,
+        })
+
+
 def get_or_incr_cache(key, func):
     """
     Used to either get a value from the cache, or if the value doesn't exist

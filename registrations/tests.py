@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.db.models.signals import post_save
 from django.conf import settings
+from django.core.cache import cache
 from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
@@ -26,7 +27,8 @@ except ImportError:
 
 from registrations import tasks
 from .models import (Source, Registration, SubscriptionRequest,
-                     registration_post_save, fire_created_metric)
+                     registration_post_save, fire_created_metric,
+                     fire_language_metric)
 from .tasks import (
     validate_registration, send_location_reminders,
     is_valid_date, is_valid_uuid, is_valid_lang, is_valid_msg_type,
@@ -194,6 +196,8 @@ class AuthenticatedAPITestCase(APITestCase):
         post_save.disconnect(receiver=model_saved,
                              dispatch_uid='instance-saved-hook')
         post_save.disconnect(receiver=fire_created_metric, sender=Registration)
+        post_save.disconnect(receiver=fire_language_metric,
+                             sender=Registration)
         assert not has_listeners(), (
             "Registration model still has post_save listeners. Make sure"
             " helpers cleaned up properly in earlier tests.")
@@ -206,6 +210,7 @@ class AuthenticatedAPITestCase(APITestCase):
             " helpers removed them properly in earlier tests.")
         post_save.connect(registration_post_save, sender=Registration)
         post_save.connect(receiver=fire_created_metric, sender=Registration)
+        post_save.connect(receiver=fire_language_metric, sender=Registration)
 
     def _replace_get_metric_client(self, session=None):
         return MetricsApiClient(
@@ -233,7 +238,10 @@ class AuthenticatedAPITestCase(APITestCase):
         data = {
             "stage": "prebirth",
             "mother_id": "mother01-63e2-4acc-9b94-26663b9bc267",
-            "data": {"test_adminuser_reg_key": "test_adminuser_reg_value"},
+            "data": {
+                "test_adminuser_reg_key": "test_adminuser_reg_value",
+                "language": "eng_UG"
+            },
             "source": self.make_source_adminuser()
         }
         return Registration.objects.create(**data)
@@ -505,6 +513,7 @@ class TestRegistrationAPI(AuthenticatedAPITestCase):
         # Setup
         registration1 = self.make_registration_normaluser()
         registration2 = self.make_registration_adminuser()
+
         # Execute
         response = self.normalclient.get(
             '/api/v1/registrations/', content_type='application/json')
@@ -1403,6 +1412,14 @@ class TestMetricsAPI(AuthenticatedAPITestCase):
             sorted(response.data["metrics_available"]), sorted([
                 'registrations.created.sum',
                 'registrations.created.total.last',
+                'registrations.language.eng_UG.sum',
+                'registrations.language.cgg_UG.sum',
+                'registrations.language.xog_UG.sum',
+                'registrations.language.lug_UG.sum',
+                'registrations.language.eng_UG.total.last',
+                'registrations.language.cgg_UG.total.last',
+                'registrations.language.xog_UG.total.last',
+                'registrations.language.lug_UG.total.last',
             ])
         )
 
@@ -1499,6 +1516,39 @@ class TestMetrics(AuthenticatedAPITestCase):
         )
         # remove post_save hooks to prevent teardown errors
         post_save.disconnect(fire_created_metric, sender=Registration)
+
+    def test_language_metric(self):
+        """
+        When creating a registration, two metrics should be fired for the
+        receiver type that the registration is created for. One of type sum
+        with a value of 1, and one of type last with the current total.
+        """
+        adapter = self._mount_session()
+        post_save.connect(fire_language_metric, sender=Registration)
+
+        cache.clear()
+        self.make_registration_adminuser()
+        self.make_registration_adminuser()
+
+        [r_sum1, r_total1, r_sum2, r_total2] = adapter.requests
+        self._check_request(
+            r_sum1, 'POST',
+            data={"registrations.language.eng_UG.sum": 1.0}
+        )
+        self._check_request(
+            r_total1, 'POST',
+            data={"registrations.language.eng_UG.total.last": 1.0}
+        )
+        self._check_request(
+            r_sum2, 'POST',
+            data={"registrations.language.eng_UG.sum": 1.0}
+        )
+        self._check_request(
+            r_total2, 'POST',
+            data={"registrations.language.eng_UG.total.last": 2.0}
+        )
+
+        post_save.disconnect(fire_language_metric, sender=Registration)
 
 
 class TestRepopulateMetricsTask(TestCase):
