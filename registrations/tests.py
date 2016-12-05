@@ -1419,7 +1419,7 @@ class TestMetricsAPI(AuthenticatedAPITestCase):
                 'registrations.language.xog_UG.sum',
                 'registrations.language.lug_UG.sum',
                 'registrations.language.eng_UG.total.last',
-                'registrations.language.cgg_UG.total.last'
+                'registrations.language.cgg_UG.total.last',
                 'registrations.language.xog_UG.total.last',
                 'registrations.language.lug_UG.total.last',
                 'registrations.source.hwc.sum',
