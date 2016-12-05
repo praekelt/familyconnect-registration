@@ -1414,8 +1414,12 @@ class TestMetricsAPI(AuthenticatedAPITestCase):
                 'registrations.created.total.last',
                 'registrations.language.eng_UG.sum',
                 'registrations.language.cgg_UG.sum',
+                'registrations.language.xog_UG.sum',
+                'registrations.language.lug_UG.sum',
                 'registrations.language.eng_UG.total.last',
                 'registrations.language.cgg_UG.total.last',
+                'registrations.language.xog_UG.total.last',
+                'registrations.language.lug_UG.total.last',
             ])
         )
 

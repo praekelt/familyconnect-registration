@@ -217,7 +217,7 @@ CELERYBEAT_SCHEDULE = {
     },
 }
 
-LANGUAGES = ["eng_UG", "cgg_UG"]
+LANGUAGES = ["eng_UG", "cgg_UG", "xog_UG", "lug_UG"]
 
 METRICS_REALTIME = [
     'registrations.created.sum',

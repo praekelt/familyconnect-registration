@@ -33,7 +33,7 @@ def is_valid_uuid(id):
 
 
 def is_valid_lang(lang):
-    return lang in ["eng_UG", "cgg_UG", "xog_UG", "lug_UG"]
+    return lang in settings.LANGUAGES
 
 
 def is_valid_msg_type(msg_type):
