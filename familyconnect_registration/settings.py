@@ -222,6 +222,10 @@ LANGUAGES = ["eng_UG", "cgg_UG", "xog_UG", "lug_UG"]
 METRICS_REALTIME = [
     'registrations.created.sum',
     'registrations.created.total.last',
+    'registrations.source.hwc.sum',
+    'registrations.source.hwc.total.last',
+    'registrations.source.public.sum',
+    'registrations.source.public.total.last',
 ]
 METRICS_REALTIME.extend(
     ['registrations.language.%s.sum' % l for l in LANGUAGES])

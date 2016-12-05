@@ -55,6 +55,32 @@ class MetricGenerator(object):
             .filter(data__language=language)\
             .count()
 
+    def registrations_source_hwc_sum(self, start, end):
+        return Registration.objects\
+            .filter(created_at__gt=start)\
+            .filter(created_at__lte=end)\
+            .filter(source__authority__in=['hw_limited', 'hw_full'])\
+            .count()
+
+    def registrations_source_hwc_total_last(self, start, end):
+        return Registration.objects\
+            .filter(created_at__lte=end)\
+            .filter(source__authority__in=['hw_limited', 'hw_full'])\
+            .count()
+
+    def registrations_source_public_sum(self, start, end):
+        return Registration.objects\
+            .filter(created_at__gt=start)\
+            .filter(created_at__lte=end)\
+            .filter(source__authority__in=['patient', 'advisor'])\
+            .count()
+
+    def registrations_source_public_total_last(self, start, end):
+        return Registration.objects\
+            .filter(created_at__lte=end)\
+            .filter(source__authority__in=['patient', 'advisor'])\
+            .count()
+
 
 def send_metric(amqp_channel, prefix, name, value, timestamp):
     timestamp = utils.timestamp_to_epoch(timestamp)

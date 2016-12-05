@@ -146,6 +146,36 @@ def fire_language_metric(sender, instance, created, **kwargs):
         })
 
 
+@receiver(post_save, sender=Registration)
+def fire_source_metric(sender, instance, created, **kwargs):
+    """
+    Fires metrics for each source for each subscription, a sum metric for
+    the registrations over time, and a last metric for the total count.
+    """
+    from .tasks import fire_metric
+    if (created):
+        if "hw" in instance.source.authority:
+            source = 'hcw'
+            sources = ['hw_limited', 'hw_full']
+        else:
+            source = 'public'
+            sources = ['patient', 'advisor']
+
+        fire_metric.apply_async(kwargs={
+            'metric_name': "registrations.source.%s.sum" % source,
+            'metric_value': 1.0,
+        })
+
+        total_key = "registrations.source.%s.total.last" % source
+        total = get_or_incr_cache(
+            total_key,
+            Registration.objects.filter(source__authority__in=sources).count)
+        fire_metric.apply_async(kwargs={
+            'metric_name': total_key,
+            'metric_value': total,
+        })
+
+
 def get_or_incr_cache(key, func):
     """
     Used to either get a value from the cache, or if the value doesn't exist
