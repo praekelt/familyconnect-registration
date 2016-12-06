@@ -1422,10 +1422,14 @@ class TestMetricsAPI(AuthenticatedAPITestCase):
                 'registrations.language.cgg_UG.total.last',
                 'registrations.language.xog_UG.total.last',
                 'registrations.language.lug_UG.total.last',
-                'registrations.source.hwc.sum',
-                'registrations.source.hwc.total.last',
-                'registrations.source.public.sum',
-                'registrations.source.public.total.last',
+                'registrations.source.patient.sum',
+                'registrations.source.patient.total.last',
+                'registrations.source.advisor.sum',
+                'registrations.source.advisor.total.last',
+                'registrations.source.hw_limited.sum',
+                'registrations.source.hw_limited.total.last',
+                'registrations.source.hw_full.sum',
+                'registrations.source.hw_full.total.last',
             ])
         )
 
@@ -1572,19 +1576,19 @@ class TestMetrics(AuthenticatedAPITestCase):
         [r_sum1, r_total1, r_sum2, r_total2] = adapter.requests
         self._check_request(
             r_sum1, 'POST',
-            data={"registrations.source.hcw.sum": 1.0}
+            data={"registrations.source.hw_full.sum": 1.0}
         )
         self._check_request(
             r_total1, 'POST',
-            data={"registrations.source.hcw.total.last": 1.0}
+            data={"registrations.source.hw_full.total.last": 1.0}
         )
         self._check_request(
             r_sum2, 'POST',
-            data={"registrations.source.hcw.sum": 1.0}
+            data={"registrations.source.hw_full.sum": 1.0}
         )
         self._check_request(
             r_total2, 'POST',
-            data={"registrations.source.hcw.total.last": 2.0}
+            data={"registrations.source.hw_full.total.last": 2.0}
         )
 
         post_save.disconnect(fire_source_metric, sender=Registration)

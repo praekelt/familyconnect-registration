@@ -165,7 +165,8 @@ class MetricsGeneratorTests(AuthenticatedAPITestCase):
         self.create_registration_on(
             datetime(2015, 10, 26), source, language='eng')  # After
 
-        reg_count = MetricGenerator().registrations_source_hwc_sum(start, end)
+        reg_count = MetricGenerator().registrations_source_sum(
+            'hw_full', start, end)
         self.assertEqual(reg_count, 2)
 
     def test_registrations_source_total_last(self):
@@ -193,8 +194,8 @@ class MetricsGeneratorTests(AuthenticatedAPITestCase):
         self.create_registration_on(
             datetime(2016, 10, 26), source, language='eng')  # After
 
-        reg_count = MetricGenerator().registrations_source_hwc_total_last(
-            start, end)
+        reg_count = MetricGenerator().registrations_source_total_last(
+            'hw_full', start, end)
         self.assertEqual(reg_count, 3)
 
     def test_that_all_metrics_are_present(self):
