@@ -28,7 +28,7 @@ except ImportError:
 from registrations import tasks
 from .models import (Source, Registration, SubscriptionRequest,
                      registration_post_save, fire_created_metric,
-                     fire_language_metric)
+                     fire_language_metric, fire_source_metric)
 from .tasks import (
     validate_registration, send_location_reminders,
     is_valid_date, is_valid_uuid, is_valid_lang, is_valid_msg_type,
@@ -198,6 +198,7 @@ class AuthenticatedAPITestCase(APITestCase):
         post_save.disconnect(receiver=fire_created_metric, sender=Registration)
         post_save.disconnect(receiver=fire_language_metric,
                              sender=Registration)
+        post_save.disconnect(receiver=fire_source_metric, sender=Registration)
         assert not has_listeners(), (
             "Registration model still has post_save listeners. Make sure"
             " helpers cleaned up properly in earlier tests.")
@@ -211,6 +212,7 @@ class AuthenticatedAPITestCase(APITestCase):
         post_save.connect(registration_post_save, sender=Registration)
         post_save.connect(receiver=fire_created_metric, sender=Registration)
         post_save.connect(receiver=fire_language_metric, sender=Registration)
+        post_save.connect(receiver=fire_source_metric, sender=Registration)
 
     def _replace_get_metric_client(self, session=None):
         return MetricsApiClient(
@@ -1420,6 +1422,14 @@ class TestMetricsAPI(AuthenticatedAPITestCase):
                 'registrations.language.cgg_UG.total.last',
                 'registrations.language.xog_UG.total.last',
                 'registrations.language.lug_UG.total.last',
+                'registrations.source.patient.sum',
+                'registrations.source.patient.total.last',
+                'registrations.source.advisor.sum',
+                'registrations.source.advisor.total.last',
+                'registrations.source.hw_limited.sum',
+                'registrations.source.hw_limited.total.last',
+                'registrations.source.hw_full.sum',
+                'registrations.source.hw_full.total.last',
             ])
         )
 
@@ -1549,6 +1559,39 @@ class TestMetrics(AuthenticatedAPITestCase):
         )
 
         post_save.disconnect(fire_language_metric, sender=Registration)
+
+    def test_source_metric(self):
+        """
+        When creating a registration, two metrics should be fired for the
+        receiver type that the registration is created for. One of type sum
+        with a value of 1, and one of type last with the current total.
+        """
+        adapter = self._mount_session()
+        post_save.connect(fire_source_metric, sender=Registration)
+
+        cache.clear()
+        self.make_registration_adminuser()
+        self.make_registration_adminuser()
+
+        [r_sum1, r_total1, r_sum2, r_total2] = adapter.requests
+        self._check_request(
+            r_sum1, 'POST',
+            data={"registrations.source.hw_full.sum": 1.0}
+        )
+        self._check_request(
+            r_total1, 'POST',
+            data={"registrations.source.hw_full.total.last": 1.0}
+        )
+        self._check_request(
+            r_sum2, 'POST',
+            data={"registrations.source.hw_full.sum": 1.0}
+        )
+        self._check_request(
+            r_total2, 'POST',
+            data={"registrations.source.hw_full.total.last": 2.0}
+        )
+
+        post_save.disconnect(fire_source_metric, sender=Registration)
 
 
 class TestRepopulateMetricsTask(TestCase):

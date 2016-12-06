@@ -218,6 +218,12 @@ CELERYBEAT_SCHEDULE = {
 }
 
 LANGUAGES = ["eng_UG", "cgg_UG", "xog_UG", "lug_UG"]
+AUTHORITY_CHOICES = (
+    ('patient', "Patient"),
+    ('advisor', "Trusted Advisor"),
+    ('hw_limited', "Health Worker Limited"),
+    ('hw_full', "Health Worker Full")
+)
 
 METRICS_REALTIME = [
     'registrations.created.sum',
@@ -227,6 +233,11 @@ METRICS_REALTIME.extend(
     ['registrations.language.%s.sum' % l for l in LANGUAGES])
 METRICS_REALTIME.extend(
     ['registrations.language.%s.total.last' % l for l in LANGUAGES])
+METRICS_REALTIME.extend(
+    ['registrations.source.%s.sum' % s[0] for s in AUTHORITY_CHOICES])
+METRICS_REALTIME.extend(
+    ['registrations.source.%s.total.last' % s[0] for s in AUTHORITY_CHOICES])
+
 
 METRICS_AUTH_TOKEN = os.environ.get("METRICS_AUTH_TOKEN", "REPLACEME")
 METRICS_URL = os.environ.get("METRICS_URL", None)

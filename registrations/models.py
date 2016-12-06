@@ -2,6 +2,7 @@ import uuid
 
 from django.contrib.postgres.fields import JSONField
 from django.contrib.auth.models import User
+from django.conf import settings
 from django.db import models
 from django.core.cache import cache
 from django.db.models.signals import post_save
@@ -15,16 +16,10 @@ class Source(models.Model):
         The User foreignkey is used to identify the source based on the
         user's api token.
     """
-    AUTHORITY_CHOICES = (
-        ('patient', "Patient"),
-        ('advisor', "Trusted Advisor"),
-        ('hw_limited', "Health Worker Limited"),
-        ('hw_full', "Health Worker Full")
-    )
     name = models.CharField(max_length=100, null=False, blank=False)
     user = models.ForeignKey(User, related_name='sources', null=False)
     authority = models.CharField(max_length=30, null=False, blank=False,
-                                 choices=AUTHORITY_CHOICES)
+                                 choices=settings.AUTHORITY_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -140,6 +135,31 @@ def fire_language_metric(sender, instance, created, **kwargs):
         total = get_or_incr_cache(
             total_key,
             Registration.objects.filter(data__language=lang).count)
+        fire_metric.apply_async(kwargs={
+            'metric_name': total_key,
+            'metric_value': total,
+        })
+
+
+@receiver(post_save, sender=Registration)
+def fire_source_metric(sender, instance, created, **kwargs):
+    """
+    Fires metrics for each source for each subscription, a sum metric for
+    the registrations over time, and a last metric for the total count.
+    """
+    from .tasks import fire_metric
+    if (created):
+        source = instance.source.authority
+
+        fire_metric.apply_async(kwargs={
+            'metric_name': "registrations.source.%s.sum" % source,
+            'metric_value': 1.0,
+        })
+
+        total_key = "registrations.source.%s.total.last" % source
+        total = get_or_incr_cache(
+            total_key,
+            Registration.objects.filter(source__authority=source).count)
         fire_metric.apply_async(kwargs={
             'metric_name': total_key,
             'metric_value': total,

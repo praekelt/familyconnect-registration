@@ -19,6 +19,16 @@ class MetricGenerator(object):
                 partial(self.registrations_language_total_last, language)
             )
 
+        for source in settings.AUTHORITY_CHOICES:
+            setattr(
+                self, 'registrations_source_{}_sum'.format(source[0]),
+                partial(self.registrations_source_sum, source[0])
+            )
+            setattr(
+                self, 'registrations_source_{}_total_last'.format(source[0]),
+                partial(self.registrations_source_total_last, source[0])
+            )
+
     def generate_metric(self, name, start, end):
         """
         Generates a metric value for the given parameters.
@@ -53,6 +63,19 @@ class MetricGenerator(object):
         return Registration.objects\
             .filter(created_at__lte=end)\
             .filter(data__language=language)\
+            .count()
+
+    def registrations_source_sum(self, source, start, end):
+        return Registration.objects\
+            .filter(created_at__gt=start)\
+            .filter(created_at__lte=end)\
+            .filter(source__authority=source)\
+            .count()
+
+    def registrations_source_total_last(self, source, start, end):
+        return Registration.objects\
+            .filter(created_at__lte=end)\
+            .filter(source__authority=source)\
             .count()
 
 
