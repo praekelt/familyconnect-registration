@@ -1406,7 +1406,6 @@ class TestUserCreation(AuthenticatedAPITestCase):
         user_request = {"email": "test@example.org"}
         # Execute
         request = self.adminclient.post('/api/v1/user/token/', user_request)
-        print request
         token = request.json().get('token', None)
         # Check
         self.assertIsNotNone(
